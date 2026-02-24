@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Home, BookOpen, Calculator, Calendar, Clock, ChevronLeft,
-  ChevronRight, Plus, X, Upload, Link, Image, FileText,
-  AlertTriangle, Lock, Loader, Sparkles, ArrowRight, Minus
+  ChevronRight, Plus, Upload, Link, Image, FileText,
+  AlertTriangle, Lock, Loader, Sparkles, ArrowRight
 } from "lucide-react";
 
 /* ── Fonts ─────────────────────────────────────────────────── */
@@ -413,7 +413,6 @@ function CalendarPage({ events, setEvents }) {
   const [month, setMonth] = useState(1);
   const [year] = useState(2026);
   const [popDay, setPopDay] = useState(null);
-  const [popRef, setPopRef] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newEv, setNewEv] = useState({name:"",date:"",priority:"med",blockScreen:false});
   const popContainerRef = useRef(null);
@@ -639,7 +638,6 @@ function GPAPage() {
     const items = wiCls?.assignments.filter(a=>a.type===type)||[];
     return items.length ? items.reduce((s,a)=>s+(a.score/a.total)*100,0)/items.length : 0;
   };
-  const otherW = 1-(weights[wiType]||0.45);
   let otherScore = 0;
   if(wiType==="Formative") otherScore = avgOf("Summative")*0.45+avgOf("Final")*0.40;
   if(wiType==="Summative") otherScore = avgOf("Formative")*0.15+avgOf("Final")*0.40;
@@ -781,7 +779,7 @@ function ScreenTimePage() {
       },1000);
     } else clearInterval(ref.current);
     return()=>clearInterval(ref.current);
-  },[active,onBreak,isPomo]);
+  },[active,onBreak,isPomo,pomoWork,pomoBrk]);
 
   const timeLeft = Math.max(0,totalSecs-secs);
   const pct = totalSecs>0?Math.min(100,(secs/totalSecs)*100):0;
