@@ -1428,5 +1428,51 @@ export default function App() {
       setIsImporting(false);
     }
   };
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="shell">
+        {/* ... Sidebar rendering code ... */}
+        <div className="main">
+          {page === "home" && <HomePage events={events} />}
+          {page === "calendar" && <CalendarPage events={events} setEvents={setEvents} />}
+          
+          {/* Functional Importer Page */}
+          {page === "importer" && (
+            <div className="page fu">
+              <div className="ph">
+                <div className="ph-title">Import Data</div>
+                <div className="ph-sub">Connect your Schoology account</div>
+              </div>
+
+              <div className="card" style={{maxWidth: '500px'}}>
+                <div className="fg">
+                  <label className="fl">Schoology iCal URL</label>
+                  <input 
+                    className="fi" 
+                    placeholder="https://schoology.com/calendar/feed/..." 
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                  />
+                  <p style={{fontSize: '11px', color: 'var(--ink3)', marginTop: '8px'}}>
+                    Paste the link found under "Link to iCal" in your Schoology Calendar settings.
+                  </p>
+                </div>
+                
+                <button 
+                  className="btn btn-dark" 
+                  onClick={handleSchoologySync}
+                  disabled={isImporting}
+                >
+                  {isImporting ? <Loader className="spin" size={14}/> : <Sparkles size={14}/>}
+                  {isImporting ? "Syncing..." : "Sync Schoology"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
 
