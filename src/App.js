@@ -1085,8 +1085,8 @@ Return only the JSON array, nothing else.`}]
     setSchoError("");
     setSchoResult([]);
     try {
-      const fetchUrl = schoUrl.trim().replace(/^webcal:\/\//i, "https://");
-      const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(fetchUrl)}`);
+      const fetchUrl = schoUrl.trim();
+      const res = await fetch(`/api/schoology?url=${encodeURIComponent(fetchUrl)}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Unknown error" }));
         throw new Error(err.error || `Server error ${res.status}`);
