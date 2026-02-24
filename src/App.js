@@ -157,39 +157,49 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .spin{animation:spin 0.8s linear infinite;}
 
 /* ── Calendar layout ─── */
-.cal-page{display:flex;flex-direction:column;height:calc(100vh - 120px);min-height:500px;}
+/* The entire calendar fills the viewport height minus page chrome */
+.cal-outer{display:flex;flex-direction:column;height:calc(100vh - 148px);min-height:480px;}
 .cal-body{display:flex;gap:12px;flex:1;min-height:0;}
-.cal-main{display:flex;flex-direction:column;flex:1;min-width:0;}
-/* The header row and grid share identical column sizing */
+
+/* Grid: hd and grid share IDENTICAL column/gap so headers align perfectly */
 .cal-hd,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-hd{margin-bottom:0;}
-.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:6px 2px 4px;background:var(--bg);}
-/* Grid expands to fill remaining height; rows share the space equally */
-.cal-grid{flex:1;grid-auto-rows:1fr;overflow:visible;}
-.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:visible;display:flex;flex-direction:column;}
+.cal-hd{margin-bottom:0;flex-shrink:0;}
+.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:5px 2px 3px;}
+
+/* grid-template-rows:repeat(N,1fr) set via inline style per render so all rows are equal */
+.cal-grid{align-content:stretch;}
+
+/* KEY: fixed height cell — overflow:hidden prevents content from stretching it */
+.cal-cell{
+  height:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;padding:5px;cursor:pointer;transition:border-color 0.12s;
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;
+}
 .cal-cell:hover{border-color:var(--border2);}
 .cal-cell.today{border-color:var(--ink);border-width:2px;}
 .cal-cell.other{background:var(--surface2);opacity:0.4;pointer-events:none;}
-.cal-cell.sel{border-color:var(--ink);box-shadow:0 0 0 2px rgba(13,12,10,0.1);}
-.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;margin-bottom:3px;color:var(--ink3);flex-shrink:0;}
+.cal-cell.sel{border-color:var(--ink);box-shadow:0 0 0 2px rgba(13,12,10,0.08);}
+.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;color:var(--ink3);margin-bottom:2px;flex-shrink:0;line-height:1;}
 .cal-cell.today .cal-num{font-weight:700;color:var(--ink);}
 .cal-cell.sel .cal-num{color:var(--ink);font-weight:700;}
-.cal-ev{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;flex-shrink:0;line-height:1.4;}
+/* Events: flex-shrink:0 so they don't collapse, but parent overflow:hidden clips them */
+.cal-ev{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;flex-shrink:0;line-height:1.35;}
 .cal-ev.high{background:#fde0e0;color:var(--red);}
 .cal-ev.med{background:#fde8d8;color:var(--orange);}
 .cal-ev.low{background:#e0f3e8;color:var(--green);}
 .cal-ev.test{background:#dde8f8;color:var(--blue);}
-.cal-more{font-size:8px;font-weight:700;color:var(--blue);font-family:var(--ff-m);cursor:pointer;padding:1px 5px;border-radius:3px;background:#dde8f8;display:inline-block;margin-top:1px;transition:background 0.1s;flex-shrink:0;}
+.cal-more{font-size:8px;font-weight:700;color:var(--blue);font-family:var(--ff-m);cursor:pointer;padding:1px 5px;border-radius:3px;background:#dde8f8;display:inline-block;flex-shrink:0;transition:background 0.1s;margin-top:1px;}
 .cal-more:hover{background:#c5d8f5;}
 .cal-key{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;flex-shrink:0;}
 .ck-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--ff-m);color:var(--ink2);}
 .ck-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 
-/* "+N more" floating popup */
+/* Overflow popup ("+N more" click) */
 .day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:500;min-width:200px;max-width:250px;box-shadow:0 8px 28px rgba(0,0,0,0.14);}
 .dp-date{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
 
-/* Day detail side panel */
+/* Side panel */
 .day-panel{width:260px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;overflow:hidden;}
 .dpanel-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .dpanel-title{font-family:var(--ff-d);font-size:17px;font-weight:700;letter-spacing:-0.3px;line-height:1.2;}
@@ -447,76 +457,71 @@ function CalendarPage({ events, setEvents }) {
   const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const PLABELS = {high:"Urgent HW",med:"Normal HW",low:"Study / Event",test:"Test / Quiz"};
   const PCOLORS = {high:"var(--red)",med:"var(--orange)",low:"var(--green)",test:"var(--blue)"};
-  const MIN_YEAR = NOW.getFullYear() - 1;
-  const MAX_YEAR = NOW.getFullYear() + 1;
+  const MIN_YEAR = NOW.getFullYear()-1, MAX_YEAR = NOW.getFullYear()+1;
 
   useEffect(()=>{
     const h = e => { if(gridRef.current && !gridRef.current.contains(e.target)) setOverflowCell(null); };
-    document.addEventListener("mousedown", h);
-    return ()=>document.removeEventListener("mousedown", h);
+    document.addEventListener("mousedown",h);
+    return ()=>document.removeEventListener("mousedown",h);
   },[]);
 
   const prevMonth = () => {
-    if(month===0){ if(year>MIN_YEAR){ setMonth(11); setYear(y=>y-1); setSelDay(null); } }
+    if(month===0){ if(year>MIN_YEAR){ setYear(y=>y-1); setMonth(11); setSelDay(null); } }
     else { setMonth(m=>m-1); setSelDay(null); }
   };
   const nextMonth = () => {
-    if(month===11){ if(year<MAX_YEAR){ setMonth(0); setYear(y=>y+1); setSelDay(null); } }
+    if(month===11){ if(year<MAX_YEAR){ setYear(y=>y+1); setMonth(0); setSelDay(null); } }
     else { setMonth(m=>m+1); setSelDay(null); }
   };
-  const canGoPrev = !(month===0 && year===MIN_YEAR);
-  const canGoNext = !(month===11 && year===MAX_YEAR);
+  const canPrev = !(month===0 && year===MIN_YEAR);
+  const canNext = !(month===11 && year===MAX_YEAR);
 
+  const pad = n => String(n).padStart(2,"0");
   const first = new Date(year,month,1).getDay();
   const dim = new Date(year,month+1,0).getDate();
   const cells = [];
   for(let i=0;i<first;i++) cells.push({d:null,other:true});
   for(let i=1;i<=dim;i++) cells.push({d:i,other:false});
   while(cells.length%7!==0) cells.push({d:null,other:true});
+  const numRows = cells.length/7;
 
-  const pad = n => String(n).padStart(2,"0");
   const getEvts = d => {
     if(!d) return [];
-    const ds = `${year}-${pad(month+1)}-${pad(d)}`;
-    return events.filter(e=>e.date===ds);
+    return events.filter(e=>e.date===`${year}-${pad(month+1)}-${pad(d)}`);
   };
 
-  const todayD = NOW.getDate(), todayM = NOW.getMonth(), todayY = NOW.getFullYear();
+  const todayD=NOW.getDate(), todayM=NOW.getMonth(), todayY=NOW.getFullYear();
   const selEvts = getEvts(selDay);
   const checkedIds = Object.keys(checked).filter(id=>checked[id]).map(Number);
 
   const removeEvent = id => {
-    setEvents(prev=>prev.filter(e=>e.id!==id));
+    setEvents(p=>p.filter(e=>e.id!==id));
     setChecked(p=>{ const n={...p}; delete n[id]; return n; });
   };
-  const removeChecked = () => {
-    setEvents(prev=>prev.filter(e=>!checkedIds.includes(e.id)));
-    setChecked({});
-  };
+  const removeChecked = () => { setEvents(p=>p.filter(e=>!checkedIds.includes(e.id))); setChecked({}); };
   const addEvent = () => {
     const conflict = events.find(e=>e.date===newEv.date);
-    if(conflict && !window.confirm(`"${conflict.name}" is already on this date. Add anyway?`)) return;
-    setEvents(prev=>[...prev,{...newEv,id:Date.now()}]);
-    setShowAdd(false);
-    setNewEv({name:"",date:"",priority:"med",blockScreen:false});
+    if(conflict && !window.confirm(`"${conflict.name}" is on this date. Add anyway?`)) return;
+    setEvents(p=>[...p,{...newEv,id:Date.now()}]);
+    setShowAdd(false); setNewEv({name:"",date:"",priority:"med",blockScreen:false});
   };
   const openAddForDay = () => {
-    setNewEv(p=>({...p, date:`${year}-${pad(month+1)}-${pad(selDay||1)}`}));
+    setNewEv(p=>({...p,date:`${year}-${pad(month+1)}-${pad(selDay||1)}`}));
     setShowAdd(true);
   };
 
   return (
-    <div className="page fu" style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
-      {/* ── Top bar ── */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexShrink:0}}>
+    <div className="page fu" style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",boxSizing:"border-box"}}>
+      {/* Top bar */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexShrink:0}}>
         <div>
           <div style={{fontFamily:"var(--ff-d)",fontSize:26,fontWeight:700,letterSpacing:"-0.5px",lineHeight:1.1}}>Calendar</div>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink3)",marginTop:3}}>{MN[month]} {year} · {events.length} events</div>
+          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink3)",marginTop:2}}>{MN[month]} {year} · {events.length} events</div>
         </div>
         <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
       </div>
 
-      {/* ── Key ── */}
+      {/* Key */}
       <div className="cal-key">
         <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>KEY</span>
         {[["high","Urgent HW","#fde0e0","var(--red)"],["med","Normal HW","#fde8d8","var(--orange)"],["low","Study / Event","#e0f3e8","var(--green)"],["test","Test / Quiz","#dde8f8","var(--blue)"]].map(([k,l,bg,c])=>(
@@ -525,25 +530,27 @@ function CalendarPage({ events, setEvents }) {
         <div className="ck-item"><Lock size={9} style={{color:"var(--ink3)"}}/> Screen blocked</div>
       </div>
 
-      {/* ── Month nav ── */}
+      {/* Month nav */}
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexShrink:0}}>
-        <button className="btn btn-out btn-sm" onClick={prevMonth} disabled={!canGoPrev} style={{opacity:canGoPrev?1:0.3}}><ChevronLeft size={12}/></button>
+        <button className="btn btn-out btn-sm" onClick={prevMonth} disabled={!canPrev} style={{opacity:canPrev?1:0.3}}><ChevronLeft size={12}/></button>
         <div style={{fontFamily:"var(--ff-d)",fontSize:17,fontWeight:700,letterSpacing:"-0.3px",minWidth:150}}>{MN[month]} {year}</div>
-        <button className="btn btn-out btn-sm" onClick={nextMonth} disabled={!canGoNext} style={{opacity:canGoNext?1:0.3}}><ChevronRight size={12}/></button>
+        <button className="btn btn-out btn-sm" onClick={nextMonth} disabled={!canNext} style={{opacity:canNext?1:0.3}}><ChevronRight size={12}/></button>
       </div>
 
-      {/* ── Body: grid + panel ── */}
+      {/* Body: calendar grid + side panel */}
       <div className="cal-body" ref={gridRef}>
-        {/* Calendar grid */}
-        <div className="cal-main">
-          {/* Day-of-week headers */}
-          <div className="cal-hd">
+
+        {/* Left: DOW headers + grid */}
+        <div style={{display:"flex",flexDirection:"column",flex:1,minWidth:0,minHeight:0}}>
+          {/* DOW header — same grid spec as cells below */}
+          <div className="cal-hd" style={{marginBottom:3}}>
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
               <div key={d} className="cal-dow">{d}</div>
             ))}
           </div>
-          {/* Date cells — grid-auto-rows:1fr makes all rows equal height */}
-          <div className="cal-grid" style={{flex:1}}>
+          {/* Cell grid: grid-template-rows forces equal row heights regardless of content */}
+          <div className="cal-grid"
+            style={{flex:1,gridTemplateRows:`repeat(${numRows},1fr)`}}>
             {cells.map((c,i)=>{
               const evts = getEvts(c.d);
               const isToday = c.d===todayD && month===todayM && year===todayY;
@@ -575,7 +582,7 @@ function CalendarPage({ events, setEvents }) {
                       <div className="dp-date">{MN[month]} {c.d} — all events</div>
                       {evts.map(e=>(
                         <div key={e.id} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
-                          <span style={{width:7,height:7,borderRadius:"2px",background:PCOLORS[e.priority],flexShrink:0,display:"inline-block"}}/>
+                          <span style={{width:7,height:7,borderRadius:2,background:PCOLORS[e.priority],flexShrink:0,display:"inline-block"}}/>
                           <span style={{flex:1,fontSize:12,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</span>
                           {e.blockScreen&&<Lock size={9} style={{color:"var(--ink3)",flexShrink:0}}/>}
                           <button className="dpanel-del" onClick={()=>removeEvent(e.id)}>✕</button>
@@ -589,7 +596,7 @@ function CalendarPage({ events, setEvents }) {
           </div>
         </div>
 
-        {/* ── Side panel ── */}
+        {/* Right: side panel */}
         <div className="day-panel">
           <div className="dpanel-hd">
             <div>
@@ -602,11 +609,10 @@ function CalendarPage({ events, setEvents }) {
               </button>
             )}
           </div>
-
           <div className="dpanel-list">
             {!selDay || selEvts.length===0 ? (
               <div className="dpanel-empty">
-                {selDay ? "No events on this day." : "Click any date to view its events."}<br/>
+                {selDay?"No events on this day.":"Click any date to view its events."}
               </div>
             ) : selEvts.map(e=>(
               <div key={e.id} className="dpanel-ev">
@@ -617,7 +623,7 @@ function CalendarPage({ events, setEvents }) {
                 <div style={{flex:1,minWidth:0}}>
                   <div className={`dpanel-name ${checked[e.id]?"done":""}`}>{e.name}</div>
                   <div className="dpanel-meta">
-                    <span style={{width:6,height:6,borderRadius:"1px",background:PCOLORS[e.priority],display:"inline-block",flexShrink:0}}/>
+                    <span style={{width:6,height:6,borderRadius:1,background:PCOLORS[e.priority],display:"inline-block",flexShrink:0}}/>
                     {PLABELS[e.priority]}
                     {e.blockScreen&&<><Lock size={8}/>&nbsp;Blocked</>}
                   </div>
@@ -630,26 +636,25 @@ function CalendarPage({ events, setEvents }) {
               </div>
             ))}
           </div>
-
           <div className="dpanel-foot">
             {checkedIds.length>0 && (
               <button className="btn btn-red btn-sm" style={{width:"100%",justifyContent:"center",marginBottom:6}} onClick={removeChecked}>
-                Remove {checkedIds.length} checked event{checkedIds.length!==1?"s":""}
+                Remove {checkedIds.length} checked
               </button>
             )}
             <button className="btn btn-out btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={openAddForDay}>
-              <Plus size={11}/>Add to {selDay ? `${MN[month]} ${selDay}` : "this day"}
+              <Plus size={11}/>Add to {selDay?`${MN[month]} ${selDay}`:"this day"}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Add Event modal ── */}
+      {/* Add Event modal */}
       {showAdd && (
         <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
           <div className="modal sd" onClick={e=>e.stopPropagation()}>
             <div className="mt">Add Event</div>
-            <div className="fg"><label className="fl">Name</label><input className="fi" autoFocus value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test"/></div>
+            <div className="fg"><label className="fl">Name</label><input autoFocus className="fi" value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test"/></div>
             <div className="g2">
               <div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={newEv.date} onChange={e=>setNewEv({...newEv,date:e.target.value})}/></div>
               <div className="fg"><label className="fl">Priority</label><select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
