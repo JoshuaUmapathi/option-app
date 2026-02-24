@@ -909,7 +909,10 @@ function ImporterPage({ setEvents }) {
   const [tab, setTab] = useState(0);
   // Schoology tab
   const [schoUrl, setSchoUrl] = useState("");
-  const [schoStatus, setSchoStatus] = useState("idle"); // idle, loading, done
+  const [schoStatus, setSchoStatus] = useState("idle"); // idle, loading, done, error
+  const [schoError, setSchoError] = useState("");
+  const [schoResult, setSchoResult] = useState([]);
+  const [schoChecked, setSchoChecked] = useState({});
   // Text tab
   const [pastedText, setPastedText] = useState("");
   const [textStatus, setTextStatus] = useState("idle");
@@ -1047,9 +1050,109 @@ Return only the JSON array, nothing else.`);
     }
   };
 
-  const handleSchoConnect = () => {
+  // ── Pure JS iCal parser (no dependencies needed) ──────────
+  const parseICal = (raw) => {
+    const events = [];
+    // Split into VEVENT blocks
+    const blocks = raw.split("BEGIN:VEVENT").slice(1);
+
+    blocks.forEach(block => {
+      const get = (key) => {
+        // Handles folded lines (iCal wraps long lines with \r\n + space)
+        const unfolded = block.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
+        const match = unfolded.match(new RegExp(`${key}[^:]*:([^\r\n]+)`));
+        return match ? match[1].trim() : "";
+      };
+
+      const summary = get("SUMMARY")
+        .replace(/\\,/g, ",")
+        .replace(/\\n/g, " ")
+        .replace(/\\;/g, ";")
+        .trim();
+
+      const dtstart = get("DTSTART");
+      const description = get("DESCRIPTION").replace(/\\n/g, " ").replace(/\\,/g, ",");
+
+      if (!summary || !dtstart) return;
+
+      // Parse date from YYYYMMDD or YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
+      const dateStr = dtstart.replace(/T.*/, "");
+      const year = dateStr.slice(0, 4);
+      const month = dateStr.slice(4, 6);
+      const day = dateStr.slice(6, 8);
+      const isoDate = `${year}-${month}-${day}`;
+
+      // Infer priority from keywords in summary/description
+      const combined = (summary + " " + description).toLowerCase();
+      let priority = "med";
+      if (/\btest\b|\bexam\b|\bquiz\b|\bmidterm\b|\bfinal\b/.test(combined)) priority = "test";
+      else if (/\burgent\b|\bdue today\b|\boverdue\b/.test(combined)) priority = "high";
+      else if (/\breadings?\b|\bnotes?\b|\boptional\b/.test(combined)) priority = "low";
+
+      // Infer subject from summary
+      const subjectMap = {
+        "calc|math|algebra|geometry|statistics": "Math",
+        "bio|biology|science|lab|chemistry|chem|physics": "Science",
+        "english|essay|writing|lit|literature|reading": "English",
+        "history|social|apush|gov|economics|econ": "History",
+        "spanish|french|latin|language|chinese": "Language",
+        "art|music|pe|health|gym": "Elective",
+      };
+      let subject = "";
+      for (const [pattern, label] of Object.entries(subjectMap)) {
+        if (new RegExp(pattern).test(combined)) { subject = label; break; }
+      }
+
+      events.push({ name: summary, date: isoDate, priority, subject, description });
+    });
+
+    // Sort by date ascending
+    return events.sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  const handleSchoConnect = async () => {
+    if (!schoUrl.trim()) return;
     setSchoStatus("loading");
-    setTimeout(()=>setSchoStatus("done"),2200);
+    setSchoError("");
+    setSchoResult([]);
+    try {
+      // Call our Vercel proxy instead of Schoology directly
+      const proxyUrl = `/api/schoology?url=${encodeURIComponent(schoUrl.trim())}`;
+      const res = await fetch(proxyUrl);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `Server error ${res.status}`);
+      }
+
+      const icalText = await res.text();
+      const parsed = parseICal(icalText);
+
+      if (parsed.length === 0) {
+        throw new Error("No events found in this calendar. It may be empty or the format is unsupported.");
+      }
+
+      setSchoResult(parsed);
+      setSchoChecked(Object.fromEntries(parsed.map((_, i) => [i, true])));
+      setSchoStatus("done");
+    } catch (e) {
+      setSchoError(e.message || "Something went wrong. Check the URL and try again.");
+      setSchoStatus("error");
+    }
+  };
+
+  const addSchoToCalendar = () => {
+    const toAdd = schoResult
+      .filter((_, i) => schoChecked[i] !== false)
+      .map(r => ({
+        id: Date.now() + Math.random(),
+        name: r.name,
+        date: r.date,
+        priority: r.priority,
+        blockScreen: false,
+      }));
+    setEvents(prev => [...prev, ...toAdd]);
+    alert(`✓ Added ${toAdd.length} Schoology events to your calendar!`);
   };
 
   const addSelectedToCalendar = (results) => {
@@ -1119,28 +1222,90 @@ Return only the JSON array, nothing else.`);
         <div className="card">
           <div className="ch"><div className="ct">Schoology iCal Sync</div></div>
           <div style={{fontSize:13,color:"var(--ink2)",marginBottom:16,lineHeight:1.6}}>
-            In Schoology: go to <strong>Calendar → Export</strong>, copy the iCal URL, and paste it below. Option will import all assignments and due dates automatically.
+            In Schoology: go to <strong>Calendar → Export</strong>, copy the iCal URL, and paste it below. Option will import all your assignments and due dates automatically.
           </div>
-          <div className="fg"><label className="fl">Schoology iCal URL</label>
-            <input className="fi" value={schoUrl} onChange={e=>setSchoUrl(e.target.value)} placeholder="https://app.schoology.com/ical/..."/>
+
+          <div className="fg">
+            <label className="fl">Schoology iCal URL</label>
+            <input
+              className="fi"
+              value={schoUrl}
+              onChange={e=>{ setSchoUrl(e.target.value); setSchoStatus("idle"); setSchoError(""); }}
+              placeholder="https://app.schoology.com/ical/..."
+            />
           </div>
+
           {schoStatus==="idle" && (
-            <button className="btn btn-dark" disabled={!schoUrl} onClick={handleSchoConnect}>Connect & Import →</button>
+            <button className="btn btn-dark" disabled={!schoUrl.trim()} onClick={handleSchoConnect}>
+              <Link size={12}/>Connect & Import →
+            </button>
           )}
+
           {schoStatus==="loading" && (
-            <div className="ai-thinking"><Loader size={15} className="spin" style={{color:"var(--ink2)"}}/><div><div className="ai-t">Connecting to Schoology…</div><div className="ai-sub">Reading calendar feed</div></div></div>
-          )}
-          {schoStatus==="done" && (
-            <div style={{background:"#eef7f2",border:"1px solid #b0dcc2",borderRadius:"var(--r)",padding:"12px 14px",marginTop:4}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:600,fontSize:13,color:"var(--green)",marginBottom:4}}>✓ Connected — 18 assignments imported</div>
-              <div style={{fontSize:12,color:"var(--green)"}}>Auto-syncs every 24h. Check your calendar.</div>
+            <div className="ai-thinking">
+              <Loader size={15} className="spin" style={{color:"var(--ink2)",flexShrink:0}}/>
+              <div>
+                <div className="ai-t">Connecting to Schoology…</div>
+                <div className="ai-sub">Fetching and parsing your calendar</div>
+              </div>
             </div>
           )}
+
+          {schoStatus==="error" && (
+            <div style={{background:"#fdf0f0",border:"1px solid #f0b8b8",borderRadius:"var(--r)",padding:"12px 14px"}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--red)",marginBottom:4}}>⚠ Could not connect</div>
+              <div style={{fontSize:12,color:"var(--red)"}}>{schoError}</div>
+              <button className="btn btn-out btn-sm" style={{marginTop:10}} onClick={()=>setSchoStatus("idle")}>Try Again</button>
+            </div>
+          )}
+
+          {schoStatus==="done" && schoResult.length>0 && (
+            <div className="sd">
+              <div style={{background:"#eef7f2",border:"1px solid #b0dcc2",borderRadius:"var(--r)",padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:13,fontWeight:600,color:"var(--green)"}}> ✓ {schoResult.length} events found</div>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setSchoStatus("idle")}>Change URL</button>
+              </div>
+
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>Select events to import</div>
+                <button className="btn btn-ghost btn-sm" onClick={()=>setSchoChecked(Object.fromEntries(schoResult.map((_,i)=>[i,!Object.values(schoChecked).every(v=>v)])))}>Toggle All</button>
+              </div>
+
+              <div style={{maxHeight:320,overflowY:"auto",marginBottom:12}}>
+                {schoResult.map((r,i)=>(
+                  <div key={i} className="ev-extracted">
+                    <div className={`ee-check ${schoChecked[i]!==false?"checked":""}`} onClick={()=>setSchoChecked(p=>({...p,[i]:!p[i]}))}>
+                      {schoChecked[i]!==false&&"✓"}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                      <div style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)",marginTop:1}}>
+                        {r.subject&&`${r.subject} · `}{r.date}
+                      </div>
+                    </div>
+                    <span className={`tag t-${r.priority}`}>{r.priority==="test"?"TEST":r.priority.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button className="btn btn-dark" style={{width:"100%"}} onClick={addSchoToCalendar}>
+                <Sparkles size={12}/>
+                Add {Object.values(schoChecked).filter(v=>v!==false).length} events to Calendar
+              </button>
+            </div>
+          )}
+
           <div className="dv"/>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:6}}>How to find your iCal URL in Schoology</div>
-          {["1. Log in to Schoology and click Calendar in the left sidebar.","2. In the top-right corner of the Calendar view, click the gear icon.","3. Select Export Calendar from the dropdown.","4. Copy the generated iCal URL and paste it above."].map((s,i)=>(
-            <div key={i} style={{display:"flex",gap:10,marginBottom:6,fontSize:12,color:"var(--ink2)"}}>
-              <span style={{fontFamily:"var(--ff-m)",color:"var(--ink3)",flexShrink:0}}>{i+1}.</span>{s.slice(3)}
+          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>How to find your iCal URL in Schoology</div>
+          {[
+            "Log in to Schoology and click Calendar in the left sidebar.",
+            "In the top-right corner of the Calendar view, click the gear ⚙ icon.",
+            "Select Export Calendar from the dropdown menu.",
+            "Copy the full iCal URL that appears and paste it above.",
+          ].map((s,i)=>(
+            <div key={i} style={{display:"flex",gap:10,marginBottom:7,fontSize:12,color:"var(--ink2)"}}>
+              <span style={{fontFamily:"var(--ff-m)",color:"var(--ink4)",flexShrink:0,minWidth:14}}>{i+1}.</span>
+              <span>{s}</span>
             </div>
           ))}
         </div>
