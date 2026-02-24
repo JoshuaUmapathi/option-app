@@ -1382,103 +1382,50 @@ Return only the JSON array, nothing else.`);
 /* ── SHELL ───────────────────────────────────────────────── */
 export default function App() {
   const [page, setPage] = useState("home");
-  const [events, setEvents] = useState(EVENTS_INIT); //
+  const [events, setEvents] = useState(EVENTS_INIT);
   const [importUrl, setImportUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
 
-  // The logic to handle the URL you get from Schoology
   const handleSchoologySync = async () => {
-    if (!importUrl) return alert("Please paste your Schoology iCal link first.");
+    if (!importUrl) return alert("Please paste your Schoology iCal link.");
     setIsImporting(true);
 
     try {
-      // 1. Call your Vercel API proxy
+      // Calls your /api/schoology.js file
       const res = await fetch(`/api/schoology?url=${encodeURIComponent(importUrl)}`);
-      if (!res.ok) throw new Error("Failed to fetch calendar data.");
+      if (!res.ok) throw new Error("Check your URL or Vercel API logs.");
       
       const icalText = await res.text();
 
-      // 2. Parse the .ics format into your app's format
+      // Simple parser for the .ics file you uploaded
       const vevents = icalText.split("BEGIN:VEVENT");
-      vevents.shift(); // Remove the iCal header
+      vevents.shift(); 
 
       const newEvents = vevents.map(block => {
-        const summary = block.match(/SUMMARY:(.*)/)?.[1] || "Untitled Assignment";
-        const dtstart = block.match(/DTSTART;VALUE=DATE:(.*)/)?.[1] || 
-                        block.match(/DTSTART:(.*)/)?.[1];
+        const summary = block.match(/SUMMARY:(.*)/)?.[1] || "Untitled Event";
+        // Handles both DATE and DATE-TIME formats found in your file
+        const dtstart = block.match(/DTSTART(?:;VALUE=DATE|;VALUE=DATE-TIME)?:(.*)/)?.[1];
         
-        // Convert YYYYMMDD to YYYY-MM-DD for your calendar state
         const dateStr = dtstart 
           ? `${dtstart.slice(0,4)}-${dtstart.slice(4,6)}-${dtstart.slice(6,8)}` 
           : new Date().toISOString().split('T')[0];
 
         return {
           id: Math.random().toString(36).substr(2, 9),
-          name: summary.trim().replace(/\\n/g, ""),
+          name: summary.trim().replace(/\\r|\\n/g, ""),
           date: dateStr,
-          priority: summary.toLowerCase().includes("test") ? "test" : "med",
+          priority: summary.toLowerCase().includes("holiday") ? "low" : "med",
           blockScreen: false
         };
       });
 
-      // 3. Update the app state
       setEvents(prev => [...prev, ...newEvents]);
-      alert(`Imported ${newEvents.length} events successfully!`);
+      alert(`Imported ${newEvents.length} assignments!`);
       setPage("calendar");
     } catch (err) {
-      console.error(err);
-      alert("Error syncing: Make sure the URL is a valid Schoology iCal link.");
+      alert("Sync failed. Check that /api/schoology.js exists in your GitHub repo.");
     } finally {
       setIsImporting(false);
     }
   };
-
-  // ... (Keep your navigation array)
-
-  return (
-    <>
-      <style>{CSS}</style>
-      <div className="shell">
-        {/* ... Sidebar rendering code ... */}
-        <div className="main">
-          {page === "home" && <HomePage events={events} />}
-          {page === "calendar" && <CalendarPage events={events} setEvents={setEvents} />}
-          
-          {/* Functional Importer Page */}
-          {page === "importer" && (
-            <div className="page fu">
-              <div className="ph">
-                <div className="ph-title">Import Data</div>
-                <div className="ph-sub">Connect your Schoology account</div>
-              </div>
-
-              <div className="card" style={{maxWidth: '500px'}}>
-                <div className="fg">
-                  <label className="fl">Schoology iCal URL</label>
-                  <input 
-                    className="fi" 
-                    placeholder="https://schoology.com/calendar/feed/..." 
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                  />
-                  <p style={{fontSize: '11px', color: 'var(--ink3)', marginTop: '8px'}}>
-                    Paste the link found under "Link to iCal" in your Schoology Calendar settings.
-                  </p>
-                </div>
-                
-                <button 
-                  className="btn btn-dark" 
-                  onClick={handleSchoologySync}
-                  disabled={isImporting}
-                >
-                  {isImporting ? <Loader className="spin" size={14}/> : <Sparkles size={14}/>}
-                  {isImporting ? "Syncing..." : "Sync Schoology"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
 }
