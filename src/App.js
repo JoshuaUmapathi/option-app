@@ -37,7 +37,7 @@ button,input,select,textarea{font-family:var(--ff-s);}
 
 /* ── Sidebar ─── */
 .sb{
-  width:210px;min-width:210px;background:var(--ink);
+  width:200px;min-width:200px;background:var(--ink);
   display:flex;flex-direction:column;
 }
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid #1e1d1a;}
@@ -59,7 +59,7 @@ button,input,select,textarea{font-family:var(--ff-s);}
 
 /* ── Main ─── */
 .main{flex:1;overflow-y:auto;background:var(--bg);}
-.page{padding:28px 30px;max-width:1080px;}
+.page{padding:22px 24px;max-width:1200px;}
 
 /* ── Page header ─── */
 .ph{margin-bottom:22px;}
@@ -157,28 +157,51 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .spin{animation:spin 0.8s linear infinite;}
 
 /* ── Calendar ─── */
+.cal-wrap{display:flex;gap:14px;align-items:flex-start;}
+.cal-main{flex:1;min-width:0;}
 .cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
 .cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:5px 2px;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-cell{min-height:86px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:hidden;}
+.cal-cell{min-height:80px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:visible;}
 .cal-cell:hover{border-color:var(--border2);}
 .cal-cell.today{border-color:var(--ink);border-width:2px;}
 .cal-cell.other{background:var(--surface2);opacity:0.45;}
+.cal-cell.sel{border-color:var(--ink);background:#fafaf8;}
 .cal-num{font-family:var(--ff-m);font-size:11px;font-weight:500;margin-bottom:3px;color:var(--ink2);}
 .cal-cell.today .cal-num{font-weight:700;color:var(--ink);}
+.cal-cell.sel .cal-num{color:var(--ink);font-weight:700;}
 .cal-ev{font-size:9px;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;}
 .cal-ev.high{background:#fde0e0;color:var(--red);}
 .cal-ev.med{background:#fde8d8;color:var(--orange);}
 .cal-ev.low{background:#e0f3e8;color:var(--green);}
 .cal-ev.test{background:#dde8f8;color:var(--blue);}
-.cal-more{font-size:9px;color:var(--ink3);font-family:var(--ff-m);cursor:pointer;padding:1px 4px;}
-.cal-more:hover{color:var(--ink);}
+.cal-more{font-size:9px;color:var(--blue);font-family:var(--ff-m);cursor:pointer;padding:1px 5px;border-radius:3px;background:#dde8f8;transition:all 0.12s;display:inline-block;font-weight:600;}
+.cal-more:hover{background:#c8daf6;color:var(--blue);}
 .cal-key{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;}
 .ck-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--ff-m);color:var(--ink2);}
 .ck-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
 
-/* Day popover */
-.day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:50;min-width:190px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+/* Day detail side panel */
+.day-panel{width:230px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:sticky;top:20px;align-self:flex-start;}
+.dp-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.dp-title{font-family:var(--ff-d);font-size:16px;font-weight:700;letter-spacing:-0.2px;}
+.dp-sub{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-top:2px;}
+.dp-ev{display:flex;align-items:flex-start;gap:8px;padding:8px 9px;border-radius:var(--r);margin-bottom:5px;border:1px solid var(--border);background:var(--surface);transition:all 0.12s;}
+.dp-ev:hover{border-color:var(--border2);}
+.dp-cb{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all 0.12s;margin-top:1px;}
+.dp-cb.checked{background:var(--ink);border-color:var(--ink);color:#fff;}
+.dp-info{flex:1;min-width:0;}
+.dp-name{font-size:12px;font-weight:600;line-height:1.3;transition:all 0.12s;}
+.dp-name.done{text-decoration:line-through;color:var(--ink3);}
+.dp-meta{font-family:var(--ff-m);font-size:9px;color:var(--ink3);margin-top:2px;}
+.dp-empty{text-align:center;padding:22px 10px;color:var(--ink4);font-size:11px;font-family:var(--ff-m);line-height:1.6;}
+.dp-del{background:none;border:none;cursor:pointer;padding:3px;color:var(--ink4);border-radius:3px;transition:all 0.12s;flex-shrink:0;display:flex;align-items:center;}
+.dp-del:hover{background:#fde0e0;color:var(--red);}
+.dp-del-all{width:100%;margin-top:10px;padding:6px;border-radius:var(--r);background:transparent;border:1px solid var(--border);cursor:pointer;font-size:11px;color:var(--red);font-family:var(--ff-m);transition:all 0.12s;}
+.dp-del-all:hover{background:#fde0e0;border-color:var(--red);}
+
+/* "+N more" overflow popup */
+.day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:200;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,0.12);}
 .dp-date{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
 
 /* ── Grades ─── */
@@ -411,14 +434,20 @@ function HomePage({ events }) {
 function CalendarPage({ events, setEvents }) {
   const [month, setMonth] = useState(1);
   const [year] = useState(2026);
-  const [popDay, setPopDay] = useState(null);
+  const [selDay, setSelDay] = useState(23); // selected day for side panel
+  const [overflowPop, setOverflowPop] = useState(null); // {cellIndex, day}
   const [showAdd, setShowAdd] = useState(false);
   const [newEv, setNewEv] = useState({name:"",date:"",priority:"med",blockScreen:false});
-  const popContainerRef = useRef(null);
+  const [done, setDone] = useState({}); // checked-off event ids
+  const popRef = useRef(null);
   const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const PRIORITY_LABELS = {high:"Urgent HW",med:"Normal HW",low:"Study / Event",test:"Test / Quiz"};
+  const PRIORITY_COLORS = {high:"var(--red)",med:"var(--orange)",low:"var(--green)",test:"var(--blue)"};
 
   useEffect(()=>{
-    const h = e => { if(popContainerRef.current && !popContainerRef.current.contains(e.target)) setPopDay(null); };
+    const h = e => {
+      if(popRef.current && !popRef.current.contains(e.target)) setOverflowPop(null);
+    };
     document.addEventListener("mousedown",h);
     return ()=>document.removeEventListener("mousedown",h);
   },[]);
@@ -436,6 +465,19 @@ function CalendarPage({ events, setEvents }) {
     return events.filter(e=>e.date===ds);
   };
 
+  const selEvts = getEvts(selDay);
+
+  const removeEvent = (id) => {
+    setEvents(prev=>prev.filter(e=>e.id!==id));
+    setDone(prev=>{ const n={...prev}; delete n[id]; return n; });
+  };
+
+  const removeChecked = () => {
+    const ids = Object.keys(done).filter(id=>done[id]).map(Number);
+    setEvents(prev=>prev.filter(e=>!ids.includes(e.id)));
+    setDone({});
+  };
+
   const addEvent = () => {
     const conflict = events.find(e=>e.date===newEv.date);
     if(conflict) {
@@ -445,6 +487,8 @@ function CalendarPage({ events, setEvents }) {
     setShowAdd(false);
     setNewEv({name:"",date:"",priority:"med",blockScreen:false});
   };
+
+  const checkedCount = Object.values(done).filter(Boolean).length;
 
   return (
     <div className="page fu">
@@ -472,43 +516,118 @@ function CalendarPage({ events, setEvents }) {
         <button className="btn btn-out btn-sm" onClick={()=>setMonth(m=>Math.min(11,m+1))}><ChevronRight size={12}/></button>
       </div>
 
-      <div className="cal-hd">
-        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} className="cal-dow">{d}</div>)}
-      </div>
-      <div className="cal-grid" ref={popContainerRef}>
-        {cells.map((c,i)=>{
-          const evts = getEvts(c.d);
-          const isToday = c.d===23&&month===1;
-          const visible = evts.slice(0,2);
-          const overflow = evts.length-2;
-          const isPopped = popDay===`${i}`;
-          return (
-            <div key={i} className={`cal-cell ${isToday?"today":""} ${c.other?"other":""}`} style={{position:"relative"}}
-              onClick={()=>c.d&&setPopDay(isPopped?null:`${i}`)}>
-              {c.d && <div className="cal-num">{c.d}</div>}
-              {visible.map(e=>(
-                <div key={e.id} className={`cal-ev ${e.priority}`}>
-                  {e.blockScreen&&<Lock size={7}/>}
-                  <span>{e.name}</span>
-                </div>
-              ))}
-              {overflow>0 && <div className="cal-more">+{overflow} more</div>}
-              {isPopped && evts.length>0 && (
-                <div className="day-pop sd" style={{left:i%7>3?"auto":"0",right:i%7>3?"0":"auto"}}
-                  onClick={e=>e.stopPropagation()}>
-                  <div className="dp-date">{MN[month]} {c.d}</div>
-                  {evts.map(e=>(
-                    <div key={e.id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,fontSize:12}}>
-                      <span style={{width:6,height:6,borderRadius:1,background:e.priority==="high"?"var(--red)":e.priority==="med"?"var(--orange)":e.priority==="low"?"var(--green)":"var(--blue)",flexShrink:0}}/>
-                      <span style={{flex:1,fontWeight:500}}>{e.name}</span>
-                      {e.blockScreen&&<Lock size={9} style={{color:"var(--ink3)"}}/>}
+      <div className="cal-wrap" ref={popRef}>
+        {/* ── Main calendar grid ── */}
+        <div className="cal-main">
+          <div className="cal-hd">
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} className="cal-dow">{d}</div>)}
+          </div>
+          <div className="cal-grid">
+            {cells.map((c,i)=>{
+              const evts = getEvts(c.d);
+              const isToday = c.d===23&&month===1;
+              const isSel = c.d===selDay&&!c.other;
+              const visible = evts.slice(0,2);
+              const overflow = evts.length-2;
+              const isOverflowOpen = overflowPop?.cellIndex===i;
+              return (
+                <div key={i}
+                  className={`cal-cell ${isToday?"today":""} ${c.other?"other":""} ${isSel?"sel":""}`}
+                  style={{position:"relative"}}
+                  onClick={()=>{ if(c.d&&!c.other){ setSelDay(c.d); setOverflowPop(null); } }}>
+                  {c.d && <div className="cal-num">{c.d}</div>}
+                  {visible.map(e=>(
+                    <div key={e.id} className={`cal-ev ${e.priority}`}>
+                      {e.blockScreen&&<Lock size={7}/>}
+                      <span>{e.name}</span>
                     </div>
                   ))}
+                  {overflow>0 && (
+                    <div className="cal-more"
+                      onClick={ev=>{ ev.stopPropagation(); setOverflowPop(isOverflowOpen?null:{cellIndex:i,day:c.d}); }}>
+                      +{overflow} more
+                    </div>
+                  )}
+                  {/* Overflow popup */}
+                  {isOverflowOpen && (
+                    <div className="day-pop sd" style={{left:i%7>=4?"auto":"0",right:i%7>=4?"0":"auto"}}
+                      onClick={e=>e.stopPropagation()}>
+                      <div className="dp-date">{MN[month]} {c.d} · all events</div>
+                      {evts.map(e=>(
+                        <div key={e.id} style={{display:"flex",alignItems:"center",gap:7,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+                          <span style={{width:7,height:7,borderRadius:1,background:PRIORITY_COLORS[e.priority],flexShrink:0}}/>
+                          <span style={{flex:1,fontSize:12,fontWeight:500}}>{e.name}</span>
+                          {e.blockScreen&&<Lock size={9} style={{color:"var(--ink3)"}}/>}
+                          <button className="dp-del" title="Remove" onClick={()=>removeEvent(e.id)}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Side panel ── */}
+        <div className="day-panel">
+          <div className="dp-head">
+            <div>
+              <div className="dp-title">{MN[month]} {selDay||"—"}</div>
+              <div className="dp-sub">{selEvts.length} event{selEvts.length!==1?"s":""}</div>
             </div>
-          );
-        })}
+            {checkedCount>0 && (
+              <button className="btn btn-red btn-sm" onClick={removeChecked}>
+                Remove {checkedCount}
+              </button>
+            )}
+          </div>
+
+          {selEvts.length===0 ? (
+            <div className="dp-empty">
+              No events on<br/>this day.<br/><br/>
+              <span style={{fontSize:10}}>Click any date<br/>to inspect it.</span>
+            </div>
+          ) : selEvts.map(e=>(
+            <div key={e.id} className={`dp-ev ${done[e.id]?"done":""}`}>
+              {/* Checkbox */}
+              <div className={`dp-cb ${done[e.id]?"checked":""}`}
+                onClick={()=>setDone(p=>({...p,[e.id]:!p[e.id]}))}>
+                {done[e.id]&&"✓"}
+              </div>
+              {/* Info */}
+              <div className="dp-info">
+                <div className={`dp-name ${done[e.id]?"done":""}`}>{e.name}</div>
+                <div className="dp-meta" style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:3}}>
+                    <span style={{width:6,height:6,borderRadius:1,background:PRIORITY_COLORS[e.priority],display:"inline-block"}}/>
+                    {PRIORITY_LABELS[e.priority]}
+                  </span>
+                  {e.blockScreen&&<span style={{display:"inline-flex",alignItems:"center",gap:3}}><Lock size={8}/>Blocked</span>}
+                </div>
+              </div>
+              {/* Delete */}
+              <button className="dp-del" title="Delete event" onClick={()=>removeEvent(e.id)}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+
+          {selEvts.length>0 && checkedCount>0 && (
+            <button className="dp-del-all" onClick={removeChecked}>
+              Remove {checkedCount} checked event{checkedCount!==1?"s":""}
+            </button>
+          )}
+
+          <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+            <button className="btn btn-out btn-sm" style={{width:"100%",justifyContent:"center"}}
+              onClick={()=>{ setNewEv(p=>({...p,date:`${year}-${String(month+1).padStart(2,"0")}-${String(selDay).padStart(2,"0")}`})); setShowAdd(true); }}>
+              <Plus size={11}/>Add to this day
+            </button>
+          </div>
+        </div>
       </div>
 
       {showAdd && (
@@ -1085,7 +1204,7 @@ Return only the JSON array, nothing else.`}]
     setSchoError("");
     setSchoResult([]);
     try {
-      const fetchUrl = schoUrl.trim();
+      const fetchUrl = schoUrl.trim().replace(/^webcal:\/\//i, "https://");
       const res = await fetch(`/api/schoology?url=${encodeURIComponent(fetchUrl)}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Unknown error" }));
