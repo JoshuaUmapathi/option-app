@@ -5,7 +5,6 @@ import {
   AlertTriangle, Lock, Loader, Sparkles, ArrowRight
 } from "lucide-react";
 import ICAL from 'ical.js';
-import { useState, useEffect, useRef } from "react";
 import {
   Home, BookOpen, Calculator, Calendar, Clock, ChevronLeft,
   ChevronRight, Plus, Upload, Link, Image, FileText,
