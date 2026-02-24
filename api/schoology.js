@@ -4,13 +4,15 @@ export default async function handler(req, res) {
 
   const { url } = req.query;
 
-  // Basic safety check — only allow Schoology iCal URLs
-  if (!url || !url.includes("schoology.com")) {
-    return res.status(400).json({ error: "Only Schoology URLs are supported" });
+  if (!url) {
+    return res.status(400).json({ error: "Missing url parameter" });
   }
 
+  // Convert webcal:// to https://
+  const fetchUrl = decodeURIComponent(url).replace(/^webcal:\/\//i, "https://");
+
   try {
-    const response = await fetch(decodeURIComponent(url), {
+    const response = await fetch(fetchUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; OptionApp/1.0)",
       },
