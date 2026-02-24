@@ -59,7 +59,7 @@ button,input,select,textarea{font-family:var(--ff-s);}
 
 /* ── Main ─── */
 .main{flex:1;overflow-y:auto;background:var(--bg);min-width:0;}
-.page{padding:20px 22px;width:100%;}
+.page{padding:16px 20px;width:100%;}
 
 /* ── Page header ─── */
 .ph{margin-bottom:22px;}
@@ -134,7 +134,7 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .dv{height:1px;background:var(--border);margin:16px 0;}
 
 /* ── Modal ─── */
-.ov{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px);}
+.ov{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px);}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:26px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;}
 .mt{font-family:var(--ff-d);font-size:20px;font-weight:700;margin-bottom:18px;letter-spacing:-0.3px;}
 
@@ -156,50 +156,56 @@ button,input,select,textarea{font-family:var(--ff-s);}
 @keyframes spin{to{transform:rotate(360deg);}}
 .spin{animation:spin 0.8s linear infinite;}
 
-/* ── Calendar ─── */
-.cal-layout{display:flex;gap:12px;align-items:flex-start;width:100%;}
-.cal-main{flex:1;min-width:0;}
-.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
-.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:4px 2px;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
-.cal-cell{min-height:78px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:5px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:visible;}
+/* ── Calendar layout ─── */
+.cal-page{display:flex;flex-direction:column;height:calc(100vh - 120px);min-height:500px;}
+.cal-body{display:flex;gap:12px;flex:1;min-height:0;}
+.cal-main{display:flex;flex-direction:column;flex:1;min-width:0;}
+/* The header row and grid share identical column sizing */
+.cal-hd,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-hd{margin-bottom:0;}
+.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:6px 2px 4px;background:var(--bg);}
+/* Grid expands to fill remaining height; rows share the space equally */
+.cal-grid{flex:1;grid-auto-rows:1fr;overflow:visible;}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:visible;display:flex;flex-direction:column;}
 .cal-cell:hover{border-color:var(--border2);}
 .cal-cell.today{border-color:var(--ink);border-width:2px;}
 .cal-cell.other{background:var(--surface2);opacity:0.4;pointer-events:none;}
-.cal-cell.sel{border-color:var(--ink);box-shadow:0 0 0 2px rgba(13,12,10,0.08);}
-.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;margin-bottom:2px;color:var(--ink3);}
+.cal-cell.sel{border-color:var(--ink);box-shadow:0 0 0 2px rgba(13,12,10,0.1);}
+.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;margin-bottom:3px;color:var(--ink3);flex-shrink:0;}
 .cal-cell.today .cal-num{font-weight:700;color:var(--ink);}
 .cal-cell.sel .cal-num{color:var(--ink);font-weight:700;}
-.cal-ev{font-size:9px;padding:1px 4px;border-radius:2px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;line-height:1.5;}
+.cal-ev{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;flex-shrink:0;line-height:1.4;}
 .cal-ev.high{background:#fde0e0;color:var(--red);}
 .cal-ev.med{background:#fde8d8;color:var(--orange);}
 .cal-ev.low{background:#e0f3e8;color:var(--green);}
 .cal-ev.test{background:#dde8f8;color:var(--blue);}
-.cal-more{font-size:8px;color:var(--blue);font-family:var(--ff-m);cursor:pointer;padding:1px 4px;border-radius:2px;background:#dde8f8;font-weight:600;display:inline-block;margin-top:1px;transition:background 0.1s;}
+.cal-more{font-size:8px;font-weight:700;color:var(--blue);font-family:var(--ff-m);cursor:pointer;padding:1px 5px;border-radius:3px;background:#dde8f8;display:inline-block;margin-top:1px;transition:background 0.1s;flex-shrink:0;}
 .cal-more:hover{background:#c5d8f5;}
-.cal-key{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;}
+.cal-key{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;flex-shrink:0;}
 .ck-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--ff-m);color:var(--ink2);}
 .ck-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 
 /* "+N more" floating popup */
-.day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:500;min-width:200px;max-width:240px;box-shadow:0 8px 28px rgba(0,0,0,0.14);}
+.day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:500;min-width:200px;max-width:250px;box-shadow:0 8px 28px rgba(0,0,0,0.14);}
 .dp-date{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
 
 /* Day detail side panel */
-.day-panel{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:sticky;top:0;max-height:calc(100vh - 40px);overflow-y:auto;}
-.dpanel-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
-.dpanel-title{font-family:var(--ff-d);font-size:15px;font-weight:700;letter-spacing:-0.2px;line-height:1.2;}
-.dpanel-sub{font-family:var(--ff-m);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-top:2px;}
-.dpanel-ev{display:flex;align-items:flex-start;gap:7px;padding:8px;border-radius:var(--r);margin-bottom:4px;border:1px solid var(--border);background:var(--surface);transition:border-color 0.1s;}
+.day-panel{width:260px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;overflow:hidden;}
+.dpanel-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.dpanel-title{font-family:var(--ff-d);font-size:17px;font-weight:700;letter-spacing:-0.3px;line-height:1.2;}
+.dpanel-sub{font-family:var(--ff-m);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-top:3px;}
+.dpanel-list{flex:1;overflow-y:auto;min-height:0;}
+.dpanel-ev{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:var(--r);margin-bottom:5px;border:1px solid var(--border);background:var(--surface);transition:border-color 0.1s;}
 .dpanel-ev:hover{border-color:var(--border2);}
-.dpanel-cb{width:15px;height:15px;border:1.5px solid var(--border2);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:8px;transition:all 0.12s;margin-top:1px;}
+.dpanel-cb{width:16px;height:16px;border:1.5px solid var(--border2);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all 0.12s;margin-top:1px;}
 .dpanel-cb.on{background:var(--ink);border-color:var(--ink);color:#fff;}
-.dpanel-name{font-size:11px;font-weight:600;line-height:1.3;flex:1;min-width:0;}
+.dpanel-name{font-size:12px;font-weight:600;line-height:1.35;flex:1;min-width:0;}
 .dpanel-name.done{text-decoration:line-through;color:var(--ink4);}
-.dpanel-meta{font-family:var(--ff-m);font-size:9px;color:var(--ink3);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
-.dpanel-del{background:none;border:none;cursor:pointer;padding:2px;color:var(--ink4);border-radius:2px;transition:all 0.12s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.dpanel-meta{font-family:var(--ff-m);font-size:9px;color:var(--ink3);margin-top:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.dpanel-del{background:none;border:none;cursor:pointer;padding:3px;color:var(--ink4);border-radius:3px;transition:all 0.12s;flex-shrink:0;display:flex;align-items:center;}
 .dpanel-del:hover{background:#fde0e0;color:var(--red);}
-.dpanel-empty{text-align:center;padding:20px 8px;color:var(--ink4);font-size:10px;font-family:var(--ff-m);line-height:1.7;}
+.dpanel-empty{text-align:center;padding:30px 10px;color:var(--ink4);font-size:11px;font-family:var(--ff-m);line-height:1.8;}
+.dpanel-foot{flex-shrink:0;padding-top:10px;border-top:1px solid var(--border);margin-top:8px;}
 
 /* ── Grades ─── */
 .class-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -429,9 +435,10 @@ function HomePage({ events }) {
 
 /* ── CALENDAR ────────────────────────────────────────────── */
 function CalendarPage({ events, setEvents }) {
-  const [month, setMonth] = useState(1);
-  const [year] = useState(2026);
-  const [selDay, setSelDay] = useState(23);
+  const NOW = new Date();
+  const [month, setMonth] = useState(NOW.getMonth());
+  const [year, setYear] = useState(NOW.getFullYear());
+  const [selDay, setSelDay] = useState(NOW.getDate());
   const [overflowCell, setOverflowCell] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newEv, setNewEv] = useState({name:"",date:"",priority:"med",blockScreen:false});
@@ -440,12 +447,25 @@ function CalendarPage({ events, setEvents }) {
   const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const PLABELS = {high:"Urgent HW",med:"Normal HW",low:"Study / Event",test:"Test / Quiz"};
   const PCOLORS = {high:"var(--red)",med:"var(--orange)",low:"var(--green)",test:"var(--blue)"};
+  const MIN_YEAR = NOW.getFullYear() - 1;
+  const MAX_YEAR = NOW.getFullYear() + 1;
 
   useEffect(()=>{
     const h = e => { if(gridRef.current && !gridRef.current.contains(e.target)) setOverflowCell(null); };
-    document.addEventListener("mousedown",h);
-    return ()=>document.removeEventListener("mousedown",h);
+    document.addEventListener("mousedown", h);
+    return ()=>document.removeEventListener("mousedown", h);
   },[]);
+
+  const prevMonth = () => {
+    if(month===0){ if(year>MIN_YEAR){ setMonth(11); setYear(y=>y-1); setSelDay(null); } }
+    else { setMonth(m=>m-1); setSelDay(null); }
+  };
+  const nextMonth = () => {
+    if(month===11){ if(year<MAX_YEAR){ setMonth(0); setYear(y=>y+1); setSelDay(null); } }
+    else { setMonth(m=>m+1); setSelDay(null); }
+  };
+  const canGoPrev = !(month===0 && year===MIN_YEAR);
+  const canGoNext = !(month===11 && year===MAX_YEAR);
 
   const first = new Date(year,month,1).getDay();
   const dim = new Date(year,month+1,0).getDate();
@@ -454,12 +474,14 @@ function CalendarPage({ events, setEvents }) {
   for(let i=1;i<=dim;i++) cells.push({d:i,other:false});
   while(cells.length%7!==0) cells.push({d:null,other:true});
 
+  const pad = n => String(n).padStart(2,"0");
   const getEvts = d => {
     if(!d) return [];
-    const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const ds = `${year}-${pad(month+1)}-${pad(d)}`;
     return events.filter(e=>e.date===ds);
   };
 
+  const todayD = NOW.getDate(), todayM = NOW.getMonth(), todayY = NOW.getFullYear();
   const selEvts = getEvts(selDay);
   const checkedIds = Object.keys(checked).filter(id=>checked[id]).map(Number);
 
@@ -467,12 +489,10 @@ function CalendarPage({ events, setEvents }) {
     setEvents(prev=>prev.filter(e=>e.id!==id));
     setChecked(p=>{ const n={...p}; delete n[id]; return n; });
   };
-
   const removeChecked = () => {
     setEvents(prev=>prev.filter(e=>!checkedIds.includes(e.id)));
     setChecked({});
   };
-
   const addEvent = () => {
     const conflict = events.find(e=>e.date===newEv.date);
     if(conflict && !window.confirm(`"${conflict.name}" is already on this date. Add anyway?`)) return;
@@ -480,27 +500,23 @@ function CalendarPage({ events, setEvents }) {
     setShowAdd(false);
     setNewEv({name:"",date:"",priority:"med",blockScreen:false});
   };
-
   const openAddForDay = () => {
-    const d = `${year}-${String(month+1).padStart(2,"0")}-${String(selDay).padStart(2,"0")}`;
-    setNewEv(p=>({...p,date:d}));
+    setNewEv(p=>({...p, date:`${year}-${pad(month+1)}-${pad(selDay||1)}`}));
     setShowAdd(true);
   };
 
   return (
-    <div className="page fu">
-      {/* Header */}
-      <div className="ph" style={{marginBottom:10}}>
-        <div className="ph-row">
-          <div>
-            <div className="ph-title">Calendar</div>
-            <div className="ph-sub">{MN[month]} {year} · {events.length} events</div>
-          </div>
-          <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
+    <div className="page fu" style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      {/* ── Top bar ── */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexShrink:0}}>
+        <div>
+          <div style={{fontFamily:"var(--ff-d)",fontSize:26,fontWeight:700,letterSpacing:"-0.5px",lineHeight:1.1}}>Calendar</div>
+          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink3)",marginTop:3}}>{MN[month]} {year} · {events.length} events</div>
         </div>
+        <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
       </div>
 
-      {/* Key */}
+      {/* ── Key ── */}
       <div className="cal-key">
         <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>KEY</span>
         {[["high","Urgent HW","#fde0e0","var(--red)"],["med","Normal HW","#fde8d8","var(--orange)"],["low","Study / Event","#e0f3e8","var(--green)"],["test","Test / Quiz","#dde8f8","var(--blue)"]].map(([k,l,bg,c])=>(
@@ -509,25 +525,29 @@ function CalendarPage({ events, setEvents }) {
         <div className="ck-item"><Lock size={9} style={{color:"var(--ink3)"}}/> Screen blocked</div>
       </div>
 
-      {/* Month nav */}
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-        <button className="btn btn-out btn-sm" onClick={()=>{ setMonth(m=>Math.max(0,m-1)); setSelDay(null); }}><ChevronLeft size={12}/></button>
-        <div style={{fontFamily:"var(--ff-d)",fontSize:17,fontWeight:700,letterSpacing:"-0.3px",minWidth:140}}>{MN[month]} {year}</div>
-        <button className="btn btn-out btn-sm" onClick={()=>{ setMonth(m=>Math.min(11,m+1)); setSelDay(null); }}><ChevronRight size={12}/></button>
+      {/* ── Month nav ── */}
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexShrink:0}}>
+        <button className="btn btn-out btn-sm" onClick={prevMonth} disabled={!canGoPrev} style={{opacity:canGoPrev?1:0.3}}><ChevronLeft size={12}/></button>
+        <div style={{fontFamily:"var(--ff-d)",fontSize:17,fontWeight:700,letterSpacing:"-0.3px",minWidth:150}}>{MN[month]} {year}</div>
+        <button className="btn btn-out btn-sm" onClick={nextMonth} disabled={!canGoNext} style={{opacity:canGoNext?1:0.3}}><ChevronRight size={12}/></button>
       </div>
 
-      {/* Two-column layout: calendar + side panel */}
-      <div className="cal-layout">
+      {/* ── Body: grid + panel ── */}
+      <div className="cal-body" ref={gridRef}>
         {/* Calendar grid */}
-        <div className="cal-main" ref={gridRef}>
+        <div className="cal-main">
+          {/* Day-of-week headers */}
           <div className="cal-hd">
-            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} className="cal-dow">{d}</div>)}
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
+              <div key={d} className="cal-dow">{d}</div>
+            ))}
           </div>
-          <div className="cal-grid">
+          {/* Date cells — grid-auto-rows:1fr makes all rows equal height */}
+          <div className="cal-grid" style={{flex:1}}>
             {cells.map((c,i)=>{
               const evts = getEvts(c.d);
-              const isToday = c.d===23&&month===1;
-              const isSel = c.d===selDay&&!c.other;
+              const isToday = c.d===todayD && month===todayM && year===todayY;
+              const isSel = c.d===selDay && !c.other;
               const visible = evts.slice(0,2);
               const overflow = evts.length-2;
               const isOpen = overflowCell===i;
@@ -558,7 +578,7 @@ function CalendarPage({ events, setEvents }) {
                           <span style={{width:7,height:7,borderRadius:"2px",background:PCOLORS[e.priority],flexShrink:0,display:"inline-block"}}/>
                           <span style={{flex:1,fontSize:12,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</span>
                           {e.blockScreen&&<Lock size={9} style={{color:"var(--ink3)",flexShrink:0}}/>}
-                          <button className="dpanel-del" onClick={()=>{ removeEvent(e.id); if(evts.length===1) setOverflowCell(null); }}>✕</button>
+                          <button className="dpanel-del" onClick={()=>removeEvent(e.id)}>✕</button>
                         </div>
                       ))}
                     </div>
@@ -569,11 +589,11 @@ function CalendarPage({ events, setEvents }) {
           </div>
         </div>
 
-        {/* Side panel */}
+        {/* ── Side panel ── */}
         <div className="day-panel">
           <div className="dpanel-hd">
             <div>
-              <div className="dpanel-title">{selDay ? `${MN[month]} ${selDay}` : "No day selected"}</div>
+              <div className="dpanel-title">{selDay ? `${MN[month]} ${selDay}` : "Select a day"}</div>
               <div className="dpanel-sub">{selEvts.length} event{selEvts.length!==1?"s":""}</div>
             </div>
             {checkedIds.length>0 && (
@@ -583,33 +603,40 @@ function CalendarPage({ events, setEvents }) {
             )}
           </div>
 
-          {!selDay || selEvts.length===0 ? (
-            <div className="dpanel-empty">
-              {selDay ? "No events on this day." : "Click a date to view events."}<br/>
-              <span style={{opacity:0.6}}>Use the button below<br/>to add one.</span>
-            </div>
-          ) : selEvts.map(e=>(
-            <div key={e.id} className="dpanel-ev">
-              <div className={`dpanel-cb ${checked[e.id]?"on":""}`} onClick={()=>setChecked(p=>({...p,[e.id]:!p[e.id]}))}>
-                {checked[e.id]&&"✓"}
+          <div className="dpanel-list">
+            {!selDay || selEvts.length===0 ? (
+              <div className="dpanel-empty">
+                {selDay ? "No events on this day." : "Click any date to view its events."}<br/>
               </div>
-              <div style={{flex:1,minWidth:0}}>
-                <div className={`dpanel-name ${checked[e.id]?"done":""}`}>{e.name}</div>
-                <div className="dpanel-meta">
-                  <span style={{width:6,height:6,borderRadius:"1px",background:PCOLORS[e.priority],display:"inline-block",flexShrink:0}}/>
-                  {PLABELS[e.priority]}
-                  {e.blockScreen&&<><Lock size={8}/> Blocked</>}
+            ) : selEvts.map(e=>(
+              <div key={e.id} className="dpanel-ev">
+                <div className={`dpanel-cb ${checked[e.id]?"on":""}`}
+                  onClick={()=>setChecked(p=>({...p,[e.id]:!p[e.id]}))}>
+                  {checked[e.id]&&"✓"}
                 </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className={`dpanel-name ${checked[e.id]?"done":""}`}>{e.name}</div>
+                  <div className="dpanel-meta">
+                    <span style={{width:6,height:6,borderRadius:"1px",background:PCOLORS[e.priority],display:"inline-block",flexShrink:0}}/>
+                    {PLABELS[e.priority]}
+                    {e.blockScreen&&<><Lock size={8}/>&nbsp;Blocked</>}
+                  </div>
+                </div>
+                <button className="dpanel-del" title="Delete" onClick={()=>removeEvent(e.id)}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
               </div>
-              <button className="dpanel-del" title="Delete" onClick={()=>removeEvent(e.id)}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+          <div className="dpanel-foot">
+            {checkedIds.length>0 && (
+              <button className="btn btn-red btn-sm" style={{width:"100%",justifyContent:"center",marginBottom:6}} onClick={removeChecked}>
+                Remove {checkedIds.length} checked event{checkedIds.length!==1?"s":""}
+              </button>
+            )}
             <button className="btn btn-out btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={openAddForDay}>
               <Plus size={11}/>Add to {selDay ? `${MN[month]} ${selDay}` : "this day"}
             </button>
@@ -617,12 +644,12 @@ function CalendarPage({ events, setEvents }) {
         </div>
       </div>
 
-      {/* Add Event modal — rendered at page level so it escapes any stacking context */}
+      {/* ── Add Event modal ── */}
       {showAdd && (
         <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
           <div className="modal sd" onClick={e=>e.stopPropagation()}>
             <div className="mt">Add Event</div>
-            <div className="fg"><label className="fl">Name</label><input className="fi" value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test" autoFocus/></div>
+            <div className="fg"><label className="fl">Name</label><input className="fi" autoFocus value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test"/></div>
             <div className="g2">
               <div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={newEv.date} onChange={e=>setNewEv({...newEv,date:e.target.value})}/></div>
               <div className="fg"><label className="fl">Priority</label><select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
