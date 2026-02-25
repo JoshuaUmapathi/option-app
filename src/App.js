@@ -905,7 +905,6 @@ function ScreenTimePage() {
 }
 
 /* ── IMPORTER ────────────────────────────────────────────── */
-    <div className="page fu">
 function ImporterPage({ setEvents }) {
   const [tab, setTab] = useState(0);
   // Schoology tab
