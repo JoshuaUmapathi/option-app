@@ -1,11 +1,10 @@
-
-import ICAL from 'ical.js';
 import { useState, useEffect, useRef } from "react";
 import {
   Home, BookOpen, Calculator, Calendar, Clock, ChevronLeft,
   ChevronRight, Plus, Upload, Link, Image, FileText,
   AlertTriangle, Lock, Loader, Sparkles, ArrowRight
 } from "lucide-react";
+
 /* ── Fonts ─────────────────────────────────────────────────── */
 const FONT = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap');`;
 
@@ -906,34 +905,52 @@ function ScreenTimePage() {
 }
 
 /* ── IMPORTER ────────────────────────────────────────────── */
-function ImporterPage() {
-  const [url, setUrl] = useState("");
-
-  return (
     <div className="page fu">
-      <div className="ph">
-        <div className="ph-title">Import Data</div>
-        <div className="ph-sub">Sync your Schoology Calendar</div>
-      </div>
-      
-      <div className="card">
-        <div className="fg">
-          <label className="fl">Schoology iCal URL</label>
-          <input 
-            className="fi" 
-            placeholder="https://schoology.com/calendar/feed/..." 
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-        </div>
-        <button className="btn btn-dark" onClick={() => handleSchoologyImport(url)}>
-          <Sparkles size={14} style={{marginRight: 8}}/>
-          Sync Calendar
-        </button>
-      </div>
-    </div>
-  );
-}
+function ImporterPage({ setEvents }) {
+  const [tab, setTab] = useState(0);
+  // Schoology tab
+  const [schoUrl, setSchoUrl] = useState("");
+  const [schoStatus, setSchoStatus] = useState("idle"); // idle, loading, done, error
+  const [schoError, setSchoError] = useState("");
+  const [schoResult, setSchoResult] = useState([]);
+  const [schoChecked, setSchoChecked] = useState({});
+  // Text tab
+  const [pastedText, setPastedText] = useState("");
+  const [textStatus, setTextStatus] = useState("idle");
+  const [textResult, setTextResult] = useState([]);
+  // PDF tab
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfStatus, setPdfStatus] = useState("idle");
+  const [pdfResult, setPdfResult] = useState([]);
+  // Image tab
+  const [imgFile, setImgFile] = useState(null);
+  const [imgStatus, setImgStatus] = useState("idle");
+  const [imgResult, setImgResult] = useState([]);
+  // Checkbox selections
+  const [checked, setChecked] = useState({});
+
+  const tabs = [
+    {label:"Schoology",icon:<Link size={12}/>},
+    {label:"Paste Text",icon:<FileText size={12}/>},
+    {label:"Upload Doc",icon:<Upload size={12}/>},
+    {label:"Photo",icon:<Image size={12}/>},
+  ];
+
+  const callClaude = async (prompt) => {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||"").join("") || "";
+    const clean = text.replace(/```json|```/g,"").trim();
+    return JSON.parse(clean);
+  };
 
   const analyzeText = async (text) => {
     return callClaude(`You are a school assignment extractor. Given the following text from a teacher's agenda or assignment description, extract all assignments, tests, and important events.
@@ -1347,132 +1364,51 @@ Return only the JSON array, nothing else.`);
       )}
     </div>
   );
-
+}
 
 /* ── SHELL ───────────────────────────────────────────────── */
 export default function App() {
   const [page, setPage] = useState("home");
   const [events, setEvents] = useState(EVENTS_INIT);
-  const [importUrl, setImportUrl] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const handleSchoologyImport = async (icalUrl) => {
-  try {
-    // 1. Call your Vercel API route
-    const response = await fetch(`/api/schoology?url=${encodeURIComponent(icalUrl)}`);
-    const rawData = await response.text();
-    
-    // 2. Parse the iCal data
-    const jcalData = ICAL.parse(rawData);
-    const vcalendar = new ICAL.Component(jcalData);
-    const vevents = vcalendar.getAllSubcomponents('vevent');
-    
-    // 3. Transform to your app's format (EVENTS_INIT format)
-    const newEvents = vevents.map(vevent => {
-      const event = new ICAL.Event(vevent);
-      return {
-        id: Math.random().toString(36).substr(2, 9),
-        name: event.summary,
-        date: event.startDate.toISODateString(), // Returns YYYY-MM-DD
-        priority: event.summary.toLowerCase().includes("test") ? "test" : "med",
-        blockScreen: false
-      };
-    });
 
-    // 4. Update the state
-    setEvents(prev => [...prev, ...newEvents]);
-    alert(`Successfully imported ${newEvents.length} events!`);
-  } catch (err) {
-    console.error("Import failed:", err);
-    alert("Failed to import. Make sure the URL is a valid Schoology iCal link.");
-  }
-  };
-  const handleSchoologySync = async () => {
-    if (!importUrl) return alert("Please paste your Schoology iCal link.");
-    setIsImporting(true);
+  const nav = [
+    {id:"home",icon:<Home size={14}/>,label:"Home"},
+    {id:"grades",icon:<BookOpen size={14}/>,label:"Grades"},
+    {id:"gpa",icon:<Calculator size={14}/>,label:"GPA"},
+    {id:"calendar",icon:<Calendar size={14}/>,label:"Calendar"},
+    {id:"importer",icon:<Sparkles size={14}/>,label:"Import"},
+    {id:"screentime",icon:<Clock size={14}/>,label:"Screen Time"},
+  ];
 
-    try {
-      // Calls your /api/schoology.js file
-      const res = await fetch(`/api/schoology?url=${encodeURIComponent(importUrl)}`);
-      if (!res.ok) throw new Error("Check your URL or Vercel API logs.");
-      
-      const icalText = await res.text();
-
-      // Simple parser for the .ics file you uploaded
-      const vevents = icalText.split("BEGIN:VEVENT");
-      vevents.shift(); 
-
-      const newEvents = vevents.map(block => {
-        const summary = block.match(/SUMMARY:(.*)/)?.[1] || "Untitled Event";
-        // Handles both DATE and DATE-TIME formats found in your file
-        const dtstart = block.match(/DTSTART(?:;VALUE=DATE|;VALUE=DATE-TIME)?:(.*)/)?.[1];
-        
-        const dateStr = dtstart 
-          ? `${dtstart.slice(0,4)}-${dtstart.slice(4,6)}-${dtstart.slice(6,8)}` 
-          : new Date().toISOString().split('T')[0];
-
-        return {
-          id: Math.random().toString(36).substr(2, 9),
-          name: summary.trim().replace(/\\r|\\n/g, ""),
-          date: dateStr,
-          priority: summary.toLowerCase().includes("holiday") ? "low" : "med",
-          blockScreen: false
-        };
-      });
-
-      setEvents(prev => [...prev, ...newEvents]);
-      alert(`Imported ${newEvents.length} assignments!`);
-      setPage("calendar");
-    } catch (err) {
-      alert("Sync failed. Check that /api/schoology.js exists in your GitHub repo.");
-    } finally {
-      setIsImporting(false);
-    }
-  };
   return (
     <>
       <style>{CSS}</style>
       <div className="shell">
-        {/* ... Sidebar rendering code ... */}
+        <div className="sb">
+          <div className="sb-logo">
+            <div className="sb-wordmark">Option</div>
+            <div className="sb-tagline">Student OS</div>
+          </div>
+          <div className="sb-nav">
+            {nav.map(item=>(
+              <div key={item.id} className={`sb-item ${page===item.id?"on":""}`} onClick={()=>setPage(item.id)}>
+                {item.icon}{item.label}
+              </div>
+            ))}
+          </div>
+          <div className="sb-foot">
+            <div className="sb-user">Alex Johnson</div>
+          </div>
+        </div>
         <div className="main">
-          {page === "home" && <HomePage events={events} />}
-          {page === "calendar" && <CalendarPage events={events} setEvents={setEvents} />}
-          
-          {/* Functional Importer Page */}
-          {page === "importer" && (
-            <div className="page fu">
-              <div className="ph">
-                <div className="ph-title">Import Data</div>
-                <div className="ph-sub">Connect your Schoology account</div>
-              </div>
-
-              <div className="card" style={{maxWidth: '500px'}}>
-                <div className="fg">
-                  <label className="fl">Schoology iCal URL</label>
-                  <input 
-                    className="fi" 
-                    placeholder="https://schoology.com/calendar/feed/..." 
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                  />
-                  <p style={{fontSize: '11px', color: 'var(--ink3)', marginTop: '8px'}}>
-                    Paste the link found under "Link to iCal" in your Schoology Calendar settings.
-                  </p>
-                </div>
-                
-                <button 
-                  className="btn btn-dark" 
-                  onClick={handleSchoologySync}
-                  disabled={isImporting}
-                >
-                  {isImporting ? <Loader className="spin" size={14}/> : <Sparkles size={14}/>}
-                  {isImporting ? "Syncing..." : "Sync Schoology"}
-                </button>
-              </div>
-            </div>
-          )}
+          {page==="home" && <HomePage events={events}/>}
+          {page==="grades" && <GradesPage/>}
+          {page==="gpa" && <GPAPage/>}
+          {page==="calendar" && <CalendarPage events={events} setEvents={setEvents}/>}
+          {page==="importer" && <ImporterPage setEvents={setEvents}/>}
+          {page==="screentime" && <ScreenTimePage/>}
         </div>
       </div>
     </>
   );
 }
-
