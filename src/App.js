@@ -537,11 +537,48 @@ function CalendarPage({ events, setEvents }) {
 }
 
 /* ── GRADES ──────────────────────────────────────────────── */
-function GradesPage() {
+function GradesPage({ svCreds }) {
+  const [classes, setClasses] = useState(CLASSES);
   const [sel, setSel] = useState(null);
-  const cls = CLASSES.find(c=>c.id===sel);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | loading | done | error
+  const [syncError, setSyncError] = useState("");
+  const [lastSynced, setLastSynced] = useState(null);
 
-  if(cls) return (
+  // ── StudentVUE sync ──────────────────────────────────────
+  const syncGrades = async () => {
+    if (!svCreds?.username || !svCreds?.password || !svCreds?.districtUrl) {
+      setSyncStatus("nocreds");
+      return;
+    }
+    setSyncStatus("loading");
+    setSyncError("");
+    try {
+      const res = await fetch("/api/studentvue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: svCreds.username,
+          password: svCreds.password,
+          districtUrl: svCreds.districtUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sync failed");
+      if (!data.grades || data.grades.length === 0) throw new Error("No grades found. Your gradebook may be empty.");
+      setClasses(data.grades);
+      setLastSynced(new Date());
+      setSyncStatus("done");
+    } catch (e) {
+      setSyncError(e.message);
+      setSyncStatus("error");
+    }
+  };
+
+  const cls = classes.find(c => c.id === sel);
+
+  // ── Detail view ──────────────────────────────────────────
+  if (cls) return (
     <div className="page fu">
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",color:"var(--ink3)",fontSize:12,fontFamily:"var(--ff-m)"}} onClick={()=>setSel(null)}>
         <ChevronLeft size={13}/>Back to all classes
@@ -550,11 +587,12 @@ function GradesPage() {
         <div className="gd-letter" style={{color:lColor(cls.letter)}}>{cls.letter}</div>
         <div style={{flex:1}}>
           <div className="gd-nm">{cls.name}</div>
-          <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>{cls.pct}% · {cls.code}</div>
+          <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>{cls.pct}% · {cls.code}{cls.teacher ? ` · ${cls.teacher}` : ""}{cls.room ? ` · Room ${cls.room}` : ""}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
             <span className="tag t-reg">Weighted GP: {cls.wGP}</span>
             <span className="tag t-reg">Unweighted GP: {cls.uGP}</span>
+            {cls.period && <span className="tag t-reg">Period {cls.period}</span>}
           </div>
         </div>
         <div style={{textAlign:"right"}}>
@@ -562,35 +600,98 @@ function GradesPage() {
           <div className="pb" style={{width:110,marginLeft:"auto",marginTop:6,height:5}}><div className="pf" style={{width:`${cls.pct}%`,background:pColor(cls.pct)}}/></div>
         </div>
       </div>
-      {["Final","Summative","Formative"].map(type=>{
-        const items = cls.assignments.filter(a=>a.type===type);
-        if(!items.length) return null;
-        const w = {Final:"40%",Summative:"45%",Formative:"15%"};
+
+      {["Final","Summative","Formative"].map(type => {
+        const items = cls.assignments.filter(a => a.type === type);
+        if (!items.length) return null;
+        const w = {Final:"40%", Summative:"45%", Formative:"15%"};
         return (
           <div key={type}>
             <div className="sec-label">{type} · {w[type]} weight</div>
-            {items.map((a,i)=>(
-              <div key={i} className="gd-row">
-                <div className="gd-n">{a.name}</div>
-                <div className="gd-d">{a.date}</div>
-                <div className="gd-s" style={{color:pColor((a.score/a.total)*100)}}>{a.score}/{a.total}</div>
-                <div className="gd-pct">{Math.round((a.score/a.total)*100)}%</div>
-              </div>
-            ))}
+            {items.map((a,i) => {
+              const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
+              const pct = hasPts ? (a.score / a.total) * 100 : null;
+              return (
+                <div key={i} className="gd-row">
+                  <div className="gd-n">{a.name}</div>
+                  <div className="gd-d">{a.date}</div>
+                  {hasPts ? (
+                    <>
+                      <div className="gd-s" style={{color:pColor(pct)}}>{a.score}/{a.total}</div>
+                      <div className="gd-pct">{Math.round(pct)}%</div>
+                    </>
+                  ) : (
+                    <div className="gd-pct" style={{color:"var(--ink4)"}}>—</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })}
+
+      {cls.assignments.length === 0 && (
+        <div style={{textAlign:"center",padding:"32px",color:"var(--ink3)",fontSize:13}}>No assignments recorded yet.</div>
+      )}
     </div>
   );
 
+  // ── Grid view ────────────────────────────────────────────
   return (
     <div className="page fu">
       <div className="ph">
-        <div className="ph-title">Grades</div>
-        <div className="ph-sub">Spring 2026 · {CLASSES.length} classes · click to expand</div>
+        <div className="ph-row">
+          <div>
+            <div className="ph-title">Grades</div>
+            <div className="ph-sub">
+              {syncStatus === "done"
+                ? `Synced from StudentVUE · ${classes.length} classes`
+                : `${classes.length} classes · click to expand`}
+            </div>
+          </div>
+          <div className="btn-row">
+            {syncStatus === "done" && lastSynced && (
+              <span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>
+                Updated {lastSynced.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}
+              </span>
+            )}
+            <button
+              className={`btn ${syncStatus==="loading"?"btn-out":"btn-dark"} btn-sm`}
+              onClick={syncGrades}
+              disabled={syncStatus==="loading"}
+            >
+              {syncStatus==="loading"
+                ? <><Loader size={11} className="spin"/>Syncing…</>
+                : <><Sparkles size={11}/>Sync StudentVUE</>}
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Status banners */}
+      {syncStatus==="error" && (
+        <div style={{background:"#fdf0f0",border:"1px solid #f0b8b8",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--red)",marginBottom:3}}>⚠ Sync failed</div>
+          <div style={{fontSize:12,color:"var(--red)"}}>{syncError}</div>
+          <button className="btn btn-out btn-sm" style={{marginTop:8}} onClick={()=>setSyncStatus("idle")}>Dismiss</button>
+        </div>
+      )}
+
+      {syncStatus==="nocreds" && (
+        <div style={{background:"#fdf4ee",border:"1px solid #f0d0b0",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--orange)",marginBottom:3}}>StudentVUE credentials not set</div>
+          <div style={{fontSize:12,color:"var(--orange)"}}>Go to Settings (bottom of sidebar) to enter your StudentVUE username, password, and district URL.</div>
+        </div>
+      )}
+
+      {syncStatus==="done" && (
+        <div style={{background:"#eef7f2",border:"1px solid #b0dcc2",borderRadius:"var(--r)",padding:"10px 14px",marginBottom:14,fontSize:12,color:"var(--green)",fontWeight:500}}>
+          ✓ Grades synced from StudentVUE — {classes.length} classes loaded
+        </div>
+      )}
+
       <div className="class-grid">
-        {CLASSES.map(c=>(
+        {classes.map(c=>(
           <div key={c.id} className={`cc ${lClass(c.letter)}`} onClick={()=>setSel(c.id)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
               <div><div className="cc-code">{c.code}</div><div className="cc-name">{c.name}</div></div>
@@ -601,6 +702,7 @@ function GradesPage() {
               <div><div className="cc-pct">{c.pct}%</div><div className="cc-gp">GP {c.wGP}W / {c.uGP}U</div></div>
             </div>
             <div className="pb" style={{marginTop:10}}><div className="pf" style={{width:`${c.pct}%`,background:pColor(c.pct)}}/></div>
+            {c.teacher && <div style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",marginTop:6}}>{c.teacher}</div>}
           </div>
         ))}
       </div>
@@ -1365,10 +1467,146 @@ Return only the JSON array, nothing else.`);
   );
 }
 
+/* ── SETTINGS ────────────────────────────────────────────── */
+function SettingsPage({ svCreds, setSvCreds }) {
+  const [form, setForm] = useState({
+    username: svCreds?.username || "",
+    password: svCreds?.password || "",
+    districtUrl: svCreds?.districtUrl || "",
+  });
+  const [saved, setSaved] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+
+  const save = () => {
+    setSvCreds(form);
+    // Persist to localStorage so credentials survive page refresh
+    try { localStorage.setItem("sv_creds", JSON.stringify(form)); } catch {}
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const clear = () => {
+    const empty = { username: "", password: "", districtUrl: "" };
+    setForm(empty);
+    setSvCreds(empty);
+    try { localStorage.removeItem("sv_creds"); } catch {}
+  };
+
+  return (
+    <div className="page fu">
+      <div className="ph">
+        <div className="ph-title">Settings</div>
+        <div className="ph-sub">Account & integrations</div>
+      </div>
+
+      <div className="card" style={{maxWidth:520,marginBottom:14}}>
+        <div className="ch">
+          <div className="ct">StudentVUE Login</div>
+          {svCreds?.username && (
+            <span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--green)"}}>✓ Connected</span>
+          )}
+        </div>
+        <div style={{fontSize:13,color:"var(--ink2)",marginBottom:16,lineHeight:1.6}}>
+          Enter your StudentVUE credentials. These are stored only in your browser and never sent anywhere except directly to your school's StudentVUE server.
+        </div>
+
+        <div className="fg">
+          <label className="fl">District URL</label>
+          <input
+            className="fi"
+            value={form.districtUrl}
+            onChange={e => setForm({...form, districtUrl: e.target.value})}
+            placeholder="https://studentvue.yourdistrict.com"
+          />
+          <div style={{fontSize:11,color:"var(--ink3)",marginTop:4}}>
+            Find this by going to StudentVUE, copying the URL from your browser, and keeping just the domain part (e.g. https://studentvue.lausd.net).
+          </div>
+        </div>
+
+        <div className="fg">
+          <label className="fl">Username</label>
+          <input
+            className="fi"
+            value={form.username}
+            onChange={e => setForm({...form, username: e.target.value})}
+            placeholder="Your StudentVUE username"
+            autoComplete="username"
+          />
+        </div>
+
+        <div className="fg">
+          <label className="fl">Password</label>
+          <div style={{position:"relative"}}>
+            <input
+              className="fi"
+              type={showPass ? "text" : "password"}
+              value={form.password}
+              onChange={e => setForm({...form, password: e.target.value})}
+              placeholder="Your StudentVUE password"
+              autoComplete="current-password"
+              style={{paddingRight:60}}
+            />
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",fontSize:11}}
+              onClick={() => setShowPass(s => !s)}
+            >
+              {showPass ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
+
+        <div className="btn-row">
+          <button
+            className="btn btn-dark"
+            onClick={save}
+            disabled={!form.username || !form.password || !form.districtUrl}
+          >
+            {saved ? "✓ Saved" : "Save Credentials"}
+          </button>
+          {svCreds?.username && (
+            <button className="btn btn-out" onClick={clear}>Clear</button>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{maxWidth:520}}>
+        <div className="ch"><div className="ct">How grade sync works</div></div>
+        <div style={{fontSize:13,color:"var(--ink2)",lineHeight:1.7}}>
+          When you click <strong>Sync StudentVUE</strong> on the Grades page, Option sends your credentials to a private server-side function (not to any third party) which contacts your school's StudentVUE server directly. Your password is never stored on any server — it goes straight from your browser to your school and nowhere else. The grades are then parsed and displayed here.
+        </div>
+        <div className="dv"/>
+        <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>Finding your district URL</div>
+        {[
+          "Open StudentVUE in your browser and log in.",
+          "Look at the URL bar — copy everything up to and including .com, .net, or .org.",
+          'Example: if the URL is "https://sis.pausd.org/PXP2_Login.aspx", your district URL is "https://sis.pausd.org".',
+          "Paste that into the District URL field above.",
+        ].map((s,i) => (
+          <div key={i} style={{display:"flex",gap:10,marginBottom:7,fontSize:12,color:"var(--ink2)"}}>
+            <span style={{fontFamily:"var(--ff-m)",color:"var(--ink4)",flexShrink:0,minWidth:14}}>{i+1}.</span>
+            <span>{s}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── SHELL ───────────────────────────────────────────────── */
 export default function App() {
   const [page, setPage] = useState("home");
   const [events, setEvents] = useState(EVENTS_INIT);
+
+  // Load saved StudentVUE credentials from localStorage on first render
+  const [svCreds, setSvCreds] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sv_creds");
+      return saved ? JSON.parse(saved) : { username: "", password: "", districtUrl: "" };
+    } catch {
+      return { username: "", password: "", districtUrl: "" };
+    }
+  });
 
   const nav = [
     {id:"home",icon:<Home size={14}/>,label:"Home"},
@@ -1396,16 +1634,27 @@ export default function App() {
             ))}
           </div>
           <div className="sb-foot">
-            <div className="sb-user">Alex Johnson</div>
+            <div
+              className={`sb-item ${page==="settings"?"on":""}`}
+              style={{marginBottom:0,padding:"7px 10px"}}
+              onClick={()=>setPage("settings")}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              Settings
+            </div>
+            <div className="sb-user" style={{marginTop:8}}>
+              {svCreds?.username || "Not connected"}
+            </div>
           </div>
         </div>
         <div className="main">
           {page==="home" && <HomePage events={events}/>}
-          {page==="grades" && <GradesPage/>}
+          {page==="grades" && <GradesPage svCreds={svCreds}/>}
           {page==="gpa" && <GPAPage/>}
           {page==="calendar" && <CalendarPage events={events} setEvents={setEvents}/>}
           {page==="importer" && <ImporterPage setEvents={setEvents}/>}
           {page==="screentime" && <ScreenTimePage/>}
+          {page==="settings" && <SettingsPage svCreds={svCreds} setSvCreds={setSvCreds}/>}
         </div>
       </div>
     </>
