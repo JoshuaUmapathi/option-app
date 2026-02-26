@@ -702,8 +702,6 @@ function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDism
                 const apt    = hasPts ? (a.score / a.total) * 100 : null;
                 const isExc  = a.rawScore && /exc|excused/i.test(a.rawScore);
                 const isMiss = a.rawScore && /miss|incomplete|ng/i.test(a.rawScore);
-                const notGraded = !hasPts && !isExc && !isMiss;
-
                 return (
                   <div key={i} className="gd-row" style={{borderLeft: apt !== null ? `3px solid ${pColor(apt)}` : "3px solid var(--border)"}}>
                     <div style={{flex:1,minWidth:0}}>
