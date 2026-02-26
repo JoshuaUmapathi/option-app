@@ -540,7 +540,6 @@ function CalendarPage({ events, setEvents }) {
 function GradesPage({ svCreds }) {
   const [classes, setClasses] = useState(CLASSES);
   const [sel, setSel] = useState(null);
-  const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle"); // idle | loading | done | error
   const [syncError, setSyncError] = useState("");
   const [lastSynced, setLastSynced] = useState(null);
