@@ -59,8 +59,9 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .sb-user{font-size:11px;color:#383830;font-family:var(--ff-m);}
 
 /* ── Main ─── */
-.main{flex:1;overflow-y:auto;background:var(--bg);}
+.main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:column;}
 .page{padding:28px 30px;max-width:1080px;}
+.cal-page-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 
 /* ── Page header ─── */
 .ph{margin-bottom:22px;}
@@ -158,29 +159,43 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .spin{animation:spin 0.8s linear infinite;}
 
 /* ── Calendar ─── */
-.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
-.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:5px 2px;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-cell{min-height:86px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px;cursor:pointer;transition:border-color 0.12s;position:relative;overflow:hidden;}
+.cal-page{display:flex;flex-direction:column;flex:1;padding:20px 20px 12px;overflow:hidden;min-height:0;}
+.cal-wrap{display:flex;gap:12px;flex:1;min-height:0;}
+.cal-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;flex-shrink:0;}
+.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:4px 2px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:2px;flex:1;min-height:0;}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:5px;cursor:pointer;transition:border-color 0.12s;overflow:hidden;display:flex;flex-direction:column;}
 .cal-cell:hover{border-color:var(--border2);}
 .cal-cell.today{border-color:var(--ink);border-width:2px;}
-.cal-cell.other{background:var(--surface2);opacity:0.45;}
-.cal-num{font-family:var(--ff-m);font-size:11px;font-weight:500;margin-bottom:3px;color:var(--ink2);}
+.cal-cell.selected{border-color:var(--ink);background:#f0ede8;}
+.cal-cell.other{background:var(--surface2);opacity:0.35;}
+.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;margin-bottom:2px;color:var(--ink2);flex-shrink:0;line-height:1;}
 .cal-cell.today .cal-num{font-weight:700;color:var(--ink);}
-.cal-ev{font-size:9px;padding:2px 5px;border-radius:3px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:3px;}
+.cal-cell.selected .cal-num{color:var(--ink);font-weight:700;}
+.cal-ev{font-size:8px;padding:1px 4px;border-radius:2px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:2px;flex-shrink:0;line-height:1.5;}
 .cal-ev.high{background:#fde0e0;color:var(--red);}
 .cal-ev.med{background:#fde8d8;color:var(--orange);}
 .cal-ev.low{background:#e0f3e8;color:var(--green);}
 .cal-ev.test{background:#dde8f8;color:var(--blue);}
-.cal-more{font-size:9px;color:var(--ink3);font-family:var(--ff-m);cursor:pointer;padding:1px 4px;}
-.cal-more:hover{color:var(--ink);}
-.cal-key{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;}
+.cal-more{font-size:8px;color:var(--ink3);font-family:var(--ff-m);padding:0 2px;line-height:1.4;flex-shrink:0;}
+.cal-key{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;flex-shrink:0;}
 .ck-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--ff-m);color:var(--ink2);}
 .ck-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
 
-/* Day popover */
-.day-pop{position:absolute;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:50;min-width:190px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
-.dp-date{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
+/* Day sidebar */
+.day-sb{width:210px;min-width:210px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
+.day-sb-hd{padding:10px 13px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.day-sb-date{font-family:var(--ff-d);font-size:15px;font-weight:700;letter-spacing:-0.3px;line-height:1.2;}
+.day-sb-sub{font-family:var(--ff-m);font-size:9px;color:var(--ink3);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+.day-sb-body{flex:1;overflow-y:auto;padding:8px;}
+.day-sb-empty{padding:20px 12px;text-align:center;color:var(--ink4);font-size:12px;font-family:var(--ff-m);}
+.day-ev-row{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:var(--r);border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color 0.12s;}
+.day-ev-row:hover{border-color:var(--border2);}
+.day-ev-row.sel{background:#f0ede8;border-color:var(--ink);}
+.day-ev-check{width:15px;height:15px;border:1px solid var(--border2);border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;background:var(--surface);}
+.day-ev-check.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+.day-sb-ft{padding:8px;border-top:1px solid var(--border);flex-shrink:0;}
 
 /* ── Grades ─── */
 .class-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -412,17 +427,13 @@ function HomePage({ events }) {
 function CalendarPage({ events, setEvents }) {
   const [month, setMonth] = useState(1);
   const [year] = useState(2026);
-  const [popDay, setPopDay] = useState(null);
+  const [selDay, setSelDay] = useState(null); // {d, dateStr}
+  const [selEvIds, setSelEvIds] = useState(new Set());
   const [showAdd, setShowAdd] = useState(false);
   const [newEv, setNewEv] = useState({name:"",date:"",priority:"med",blockScreen:false});
-  const popContainerRef = useRef(null);
   const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
-  useEffect(()=>{
-    const h = e => { if(popContainerRef.current && !popContainerRef.current.contains(e.target)) setPopDay(null); };
-    document.addEventListener("mousedown",h);
-    return ()=>document.removeEventListener("mousedown",h);
-  },[]);
+  const SHORT_MN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
   const first = new Date(year,month,1).getDay();
   const dim = new Date(year,month+1,0).getDate();
@@ -431,10 +442,23 @@ function CalendarPage({ events, setEvents }) {
   for(let i=1;i<=dim;i++) cells.push({d:i,other:false});
   while(cells.length%7!==0) cells.push({d:null,other:true});
 
-  const getEvts = d => {
-    if(!d) return [];
-    const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    return events.filter(e=>e.date===ds);
+  const dateStr = d => d ? `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}` : "";
+  const getEvts = d => events.filter(e=>e.date===dateStr(d));
+
+  const selDayEvts = selDay ? getEvts(selDay.d) : [];
+  const selDayObj = selDay ? new Date(year, month, selDay.d) : null;
+
+  const toggleEvSel = id => {
+    setSelEvIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const removeSelected = () => {
+    setEvents(prev => prev.filter(e => !selEvIds.has(e.id)));
+    setSelEvIds(new Set());
   };
 
   const addEvent = () => {
@@ -447,80 +471,143 @@ function CalendarPage({ events, setEvents }) {
     setNewEv({name:"",date:"",priority:"med",blockScreen:false});
   };
 
+  const pColor = p => p==="high"?"var(--red)":p==="med"?"var(--orange)":p==="low"?"var(--green)":"var(--blue)";
+
   return (
-    <div className="page fu">
-      <div className="ph">
-        <div className="ph-row">
-          <div>
-            <div className="ph-title">Calendar</div>
-            <div className="ph-sub">{MN[month]} {year} · {events.length} events</div>
+    <div className="cal-page fu">
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:8,flexShrink:0}}>
+        <div>
+          <div style={{fontFamily:"var(--ff-d)",fontSize:24,fontWeight:700,letterSpacing:"-0.5px",lineHeight:1.1}}>Calendar</div>
+          <div style={{fontFamily:"var(--ff-m)",fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink3)",marginTop:3}}>{MN[month]} {year} · {events.length} events</div>
+        </div>
+        <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
+      </div>
+
+      {/* Key */}
+      <div className="cal-key">
+        <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>KEY</span>
+        {[["high","Urgent","#fde0e0","var(--red)"],["med","Normal","#fde8d8","var(--orange)"],["low","Study","#e0f3e8","var(--green)"],["test","Test","#dde8f8","var(--blue)"]].map(([k,l,bg,c])=>(
+          <div key={k} className="ck-item"><div className="ck-swatch" style={{background:bg,border:`1px solid ${c}`}}/>{l}</div>
+        ))}
+        <div className="ck-item"><Lock size={9} style={{color:"var(--ink3)"}}/> Blocked</div>
+      </div>
+
+      {/* Month nav */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <button className="btn btn-out btn-sm" onClick={()=>{setMonth(m=>Math.max(0,m-1));setSelDay(null);setSelEvIds(new Set());}}><ChevronLeft size={12}/></button>
+        <div style={{fontFamily:"var(--ff-d)",fontSize:17,fontWeight:700,letterSpacing:"-0.3px",minWidth:140}}>{MN[month]} {year}</div>
+        <button className="btn btn-out btn-sm" onClick={()=>{setMonth(m=>Math.min(11,m+1));setSelDay(null);setSelEvIds(new Set());}}><ChevronRight size={12}/></button>
+      </div>
+
+      {/* Calendar + sidebar */}
+      <div className="cal-wrap">
+        <div className="cal-main">
+          <div className="cal-hd">
+            {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} className="cal-dow">{d}</div>)}
           </div>
-          <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
+          <div className="cal-grid">
+            {cells.map((c,i)=>{
+              const evts = getEvts(c.d);
+              const isToday = c.d===23&&month===1;
+              const isSel = selDay?.d===c.d;
+              const visible = evts.slice(0,3);
+              const overflow = evts.length-3;
+              return (
+                <div
+                  key={i}
+                  className={`cal-cell ${isToday?"today":""} ${c.other?"other":""} ${isSel&&!c.other?"selected":""}`}
+                  onClick={()=>{
+                    if(!c.d||c.other) return;
+                    setSelDay(isSel?null:{d:c.d,dateStr:dateStr(c.d)});
+                    setSelEvIds(new Set());
+                  }}
+                >
+                  {c.d && <div className="cal-num">{c.d}</div>}
+                  {visible.map(e=>(
+                    <div key={e.id} className={`cal-ev ${e.priority}`}>
+                      {e.blockScreen&&<Lock size={6}/>}
+                      <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{e.name}</span>
+                    </div>
+                  ))}
+                  {overflow>0 && <div className="cal-more">+{overflow}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Day sidebar */}
+        <div className="day-sb">
+          {!selDay ? (
+            <div className="day-sb-empty" style={{padding:"30px 14px"}}>
+              <div style={{fontSize:22,marginBottom:6}}>📅</div>
+              <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink4)"}}>Select a day</div>
+              <div style={{fontSize:11,color:"var(--ink4)",marginTop:4}}>Click any date to see its events</div>
+            </div>
+          ) : (
+            <>
+              <div className="day-sb-hd">
+                <div className="day-sb-date">
+                  {selDayObj && DAYS[selDayObj.getDay()]}<br/>
+                  {SHORT_MN[month]} {selDay.d}
+                </div>
+                <div className="day-sb-sub">{selDayEvts.length} event{selDayEvts.length!==1?"s":""}</div>
+              </div>
+              <div className="day-sb-body">
+                {selDayEvts.length===0 ? (
+                  <div className="day-sb-empty">
+                    <div style={{fontSize:18,marginBottom:4}}>✦</div>
+                    <div style={{fontSize:11,color:"var(--ink4)"}}>No events</div>
+                  </div>
+                ) : selDayEvts.map(e=>(
+                  <div
+                    key={e.id}
+                    className={`day-ev-row ${selEvIds.has(e.id)?"sel":""}`}
+                    onClick={()=>toggleEvSel(e.id)}
+                  >
+                    <div className={`day-ev-check ${selEvIds.has(e.id)?"on":""}`}>
+                      {selEvIds.has(e.id)&&"✓"}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
+                        <span style={{width:5,height:5,borderRadius:1,background:pColor(e.priority),flexShrink:0}}/>
+                        <span style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",textTransform:"uppercase",letterSpacing:0.5}}>{e.priority}</span>
+                        {e.blockScreen&&<Lock size={8} style={{color:"var(--ink3)"}}/>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {selEvIds.size>0 && (
+                <div className="day-sb-ft">
+                  <button
+                    className="btn btn-red"
+                    style={{width:"100%",justifyContent:"center",fontSize:12}}
+                    onClick={removeSelected}
+                  >
+                    Remove {selEvIds.size} event{selEvIds.size!==1?"s":""}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      <div className="cal-key">
-        <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>KEY</span>
-        {[["high","Urgent HW","#fde0e0","var(--red)"],["med","Normal HW","#fde8d8","var(--orange)"],["low","Study / Event","#e0f3e8","var(--green)"],["test","Test / Quiz","#dde8f8","var(--blue)"]].map(([k,l,bg,c])=>(
-          <div key={k} className="ck-item"><div className="ck-swatch" style={{background:bg,border:`1px solid ${c}`}}/>{l}</div>
-        ))}
-        <div className="ck-item"><Lock size={9} style={{color:"var(--ink3)"}}/> Screen blocked</div>
-      </div>
-
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-        <button className="btn btn-out btn-sm" onClick={()=>setMonth(m=>Math.max(0,m-1))}><ChevronLeft size={12}/></button>
-        <div style={{fontFamily:"var(--ff-d)",fontSize:18,fontWeight:700,letterSpacing:"-0.3px"}}>{MN[month]} {year}</div>
-        <button className="btn btn-out btn-sm" onClick={()=>setMonth(m=>Math.min(11,m+1))}><ChevronRight size={12}/></button>
-      </div>
-
-      <div className="cal-hd">
-        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} className="cal-dow">{d}</div>)}
-      </div>
-      <div className="cal-grid" ref={popContainerRef}>
-        {cells.map((c,i)=>{
-          const evts = getEvts(c.d);
-          const isToday = c.d===23&&month===1;
-          const visible = evts.slice(0,2);
-          const overflow = evts.length-2;
-          const isPopped = popDay===`${i}`;
-          return (
-            <div key={i} className={`cal-cell ${isToday?"today":""} ${c.other?"other":""}`} style={{position:"relative"}}
-              onClick={()=>c.d&&setPopDay(isPopped?null:`${i}`)}>
-              {c.d && <div className="cal-num">{c.d}</div>}
-              {visible.map(e=>(
-                <div key={e.id} className={`cal-ev ${e.priority}`}>
-                  {e.blockScreen&&<Lock size={7}/>}
-                  <span>{e.name}</span>
-                </div>
-              ))}
-              {overflow>0 && <div className="cal-more">+{overflow} more</div>}
-              {isPopped && evts.length>0 && (
-                <div className="day-pop sd" style={{left:i%7>3?"auto":"0",right:i%7>3?"0":"auto"}}
-                  onClick={e=>e.stopPropagation()}>
-                  <div className="dp-date">{MN[month]} {c.d}</div>
-                  {evts.map(e=>(
-                    <div key={e.id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,fontSize:12}}>
-                      <span style={{width:6,height:6,borderRadius:1,background:e.priority==="high"?"var(--red)":e.priority==="med"?"var(--orange)":e.priority==="low"?"var(--green)":"var(--blue)",flexShrink:0}}/>
-                      <span style={{flex:1,fontWeight:500}}>{e.name}</span>
-                      {e.blockScreen&&<Lock size={9} style={{color:"var(--ink3)"}}/>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
+      {/* Add event modal */}
       {showAdd && (
         <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
           <div className="modal sd">
             <div className="mt">Add Event</div>
             <div className="fg"><label className="fl">Name</label><input className="fi" value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test"/></div>
-            <div className="g2"><div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={newEv.date} onChange={e=>setNewEv({...newEv,date:e.target.value})}/></div>
-            <div className="fg"><label className="fl">Priority</label><select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
-              <option value="high">High — Urgent</option><option value="med">Medium</option><option value="low">Low / Study</option><option value="test">Test / Quiz</option>
-            </select></div></div>
+            <div className="g2">
+              <div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={newEv.date} onChange={e=>setNewEv({...newEv,date:e.target.value})}/></div>
+              <div className="fg"><label className="fl">Priority</label><select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
+                <option value="high">High — Urgent</option><option value="med">Medium</option><option value="low">Low / Study</option><option value="test">Test / Quiz</option>
+              </select></div>
+            </div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <label className="tog"><input type="checkbox" checked={newEv.blockScreen} onChange={e=>setNewEv({...newEv,blockScreen:e.target.checked})}/><span className="tog-t"/></label>
               <span style={{fontSize:13}}>Block screen time during this event</span>
@@ -537,43 +624,8 @@ function CalendarPage({ events, setEvents }) {
 }
 
 /* ── GRADES ──────────────────────────────────────────────── */
-function GradesPage({ svCreds }) {
-  const [classes, setClasses] = useState(CLASSES);
+function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDismiss }) {
   const [sel, setSel] = useState(null);
-  const [syncStatus, setSyncStatus] = useState("idle"); // idle | loading | done | error
-  const [syncError, setSyncError] = useState("");
-  const [lastSynced, setLastSynced] = useState(null);
-
-  // ── StudentVUE sync ──────────────────────────────────────
-  const syncGrades = async () => {
-    if (!svCreds?.username || !svCreds?.password || !svCreds?.districtUrl) {
-      setSyncStatus("nocreds");
-      return;
-    }
-    setSyncStatus("loading");
-    setSyncError("");
-    try {
-      const res = await fetch("/api/studentvue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: svCreds.username,
-          password: svCreds.password,
-          districtUrl: svCreds.districtUrl,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sync failed");
-      if (!data.grades || data.grades.length === 0) throw new Error("No grades found. Your gradebook may be empty.");
-      setClasses(data.grades);
-      setLastSynced(new Date());
-      setSyncStatus("done");
-    } catch (e) {
-      setSyncError(e.message);
-      setSyncStatus("error");
-    }
-  };
-
   const cls = classes.find(c => c.id === sel);
 
   // ── Detail view ──────────────────────────────────────────
@@ -586,7 +638,7 @@ function GradesPage({ svCreds }) {
         <div className="gd-letter" style={{color:lColor(cls.letter)}}>{cls.letter}</div>
         <div style={{flex:1}}>
           <div className="gd-nm">{cls.name}</div>
-          <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>{cls.pct}% · {cls.code}{cls.teacher ? ` · ${cls.teacher}` : ""}{cls.room ? ` · Room ${cls.room}` : ""}</div>
+          <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>{cls.pct}% · {cls.code}{cls.teacher?` · ${cls.teacher}`:""}{cls.room?` · Room ${cls.room}`:""}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
             <span className="tag t-reg">Weighted GP: {cls.wGP}</span>
@@ -599,26 +651,22 @@ function GradesPage({ svCreds }) {
           <div className="pb" style={{width:110,marginLeft:"auto",marginTop:6,height:5}}><div className="pf" style={{width:`${cls.pct}%`,background:pColor(cls.pct)}}/></div>
         </div>
       </div>
-
       {["Final","Summative","Formative"].map(type => {
         const items = cls.assignments.filter(a => a.type === type);
         if (!items.length) return null;
-        const w = {Final:"40%", Summative:"45%", Formative:"15%"};
+        const w = {Final:"40%",Summative:"45%",Formative:"15%"};
         return (
           <div key={type}>
             <div className="sec-label">{type} · {w[type]} weight</div>
             {items.map((a,i) => {
               const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
-              const pct = hasPts ? (a.score / a.total) * 100 : null;
+              const apt = hasPts ? (a.score/a.total)*100 : null;
               return (
                 <div key={i} className="gd-row">
                   <div className="gd-n">{a.name}</div>
                   <div className="gd-d">{a.date}</div>
                   {hasPts ? (
-                    <>
-                      <div className="gd-s" style={{color:pColor(pct)}}>{a.score}/{a.total}</div>
-                      <div className="gd-pct">{Math.round(pct)}%</div>
-                    </>
+                    <><div className="gd-s" style={{color:pColor(apt)}}>{a.score}/{a.total}</div><div className="gd-pct">{Math.round(apt)}%</div></>
                   ) : (
                     <div className="gd-pct" style={{color:"var(--ink4)"}}>—</div>
                   )}
@@ -628,7 +676,6 @@ function GradesPage({ svCreds }) {
           </div>
         );
       })}
-
       {cls.assignments.length === 0 && (
         <div style={{textAlign:"center",padding:"32px",color:"var(--ink3)",fontSize:13}}>No assignments recorded yet.</div>
       )}
@@ -642,47 +689,32 @@ function GradesPage({ svCreds }) {
         <div className="ph-row">
           <div>
             <div className="ph-title">Grades</div>
-            <div className="ph-sub">
-              {syncStatus === "done"
-                ? `Synced from StudentVUE · ${classes.length} classes`
-                : `${classes.length} classes · click to expand`}
-            </div>
+            <div className="ph-sub">{syncStatus==="done" ? `Synced from StudentVUE · ${classes.length} classes` : `${classes.length} classes · click to expand`}</div>
           </div>
           <div className="btn-row">
-            {syncStatus === "done" && lastSynced && (
-              <span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>
-                Updated {lastSynced.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}
-              </span>
+            {syncStatus==="done" && lastSynced && (
+              <span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>Updated {lastSynced.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
             )}
-            <button
-              className={`btn ${syncStatus==="loading"?"btn-out":"btn-dark"} btn-sm`}
-              onClick={syncGrades}
-              disabled={syncStatus==="loading"}
-            >
-              {syncStatus==="loading"
-                ? <><Loader size={11} className="spin"/>Syncing…</>
-                : <><Sparkles size={11}/>Sync StudentVUE</>}
+            <button className={`btn ${syncStatus==="loading"?"btn-out":"btn-dark"} btn-sm`} onClick={onSync} disabled={syncStatus==="loading"}>
+              {syncStatus==="loading" ? <><Loader size={11} className="spin"/>Syncing…</> : <><Sparkles size={11}/>Sync StudentVUE</>}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Status banners */}
       {syncStatus==="error" && (
         <div style={{background:"#fdf0f0",border:"1px solid #f0b8b8",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:600,color:"var(--red)",marginBottom:3}}>⚠ Sync failed</div>
           <div style={{fontSize:12,color:"var(--red)"}}>{syncError}</div>
-          <button className="btn btn-out btn-sm" style={{marginTop:8}} onClick={()=>setSyncStatus("idle")}>Dismiss</button>
+          <button className="btn btn-out btn-sm" style={{marginTop:8}} onClick={onDismiss}>Dismiss</button>
         </div>
       )}
-
       {syncStatus==="nocreds" && (
         <div style={{background:"#fdf4ee",border:"1px solid #f0d0b0",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:600,color:"var(--orange)",marginBottom:3}}>StudentVUE credentials not set</div>
           <div style={{fontSize:12,color:"var(--orange)"}}>Go to Settings (bottom of sidebar) to enter your StudentVUE username, password, and district URL.</div>
         </div>
       )}
-
       {syncStatus==="done" && (
         <div style={{background:"#eef7f2",border:"1px solid #b0dcc2",borderRadius:"var(--r)",padding:"10px 14px",marginBottom:14,fontSize:12,color:"var(--green)",fontWeight:500}}>
           ✓ Grades synced from StudentVUE — {classes.length} classes loaded
@@ -710,8 +742,9 @@ function GradesPage({ svCreds }) {
 }
 
 /* ── GPA ─────────────────────────────────────────────────── */
-function GPAPage() {
-  const [classes, setClasses] = useState(CLASSES);
+function GPAPage({ sharedClasses }) {
+  const [localClasses, setLocalClasses] = useState(CLASSES);
+  const classes = sharedClasses && sharedClasses.length > 0 ? sharedClasses : localClasses;
   const [showAdd, setShowAdd] = useState(false);
   const [showWI, setShowWI] = useState(false);
   const [nc, setNc] = useState({name:"",type:"AP",pct:90});
@@ -729,7 +762,7 @@ function GPAPage() {
     const l = nc.pct>=93?"A":nc.pct>=90?"A-":nc.pct>=87?"B+":nc.pct>=83?"B":nc.pct>=80?"B-":"C+";
     const bonus={AP:1,HN:0.5,REG:0};
     const base=nc.pct>=93?4:nc.pct>=90?3.7:nc.pct>=87?3.3:nc.pct>=83?3:nc.pct>=80?2.7:2.3;
-    setClasses(prev=>[...prev,{...nc,id:Date.now(),letter:l,code:"NEW",wGP:base+(bonus[nc.type]||0),uGP:base,assignments:[]}]);
+    setLocalClasses(prev=>[...prev,{...nc,id:Date.now(),letter:l,code:"NEW",wGP:base+(bonus[nc.type]||0),uGP:base,assignments:[]}]);
     setShowAdd(false); setNc({name:"",type:"AP",pct:90});
   };
 
@@ -1467,7 +1500,7 @@ Return only the JSON array, nothing else.`);
 }
 
 /* ── SETTINGS ────────────────────────────────────────────── */
-function SettingsPage({ svCreds, setSvCreds }) {
+function SettingsPage({ svCreds, onSave }) {
   const [form, setForm] = useState({
     username: svCreds?.username || "",
     password: svCreds?.password || "",
@@ -1477,18 +1510,15 @@ function SettingsPage({ svCreds, setSvCreds }) {
   const [showPass, setShowPass] = useState(false);
 
   const save = () => {
-    setSvCreds(form);
-    // Persist to localStorage so credentials survive page refresh
-    try { localStorage.setItem("sv_creds", JSON.stringify(form)); } catch {}
+    onSave(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const clear = () => {
-    const empty = { username: "", password: "", districtUrl: "" };
+    const empty = { username:"", password:"", districtUrl:"" };
     setForm(empty);
-    setSvCreds(empty);
-    try { localStorage.removeItem("sv_creds"); } catch {}
+    onSave(empty);
   };
 
   return (
@@ -1561,7 +1591,7 @@ function SettingsPage({ svCreds, setSvCreds }) {
             onClick={save}
             disabled={!form.username || !form.password || !form.districtUrl}
           >
-            {saved ? "✓ Saved" : "Save Credentials"}
+            {saved ? "✓ Saved — syncing grades…" : "Save & Sync Grades"}
           </button>
           {svCreds?.username && (
             <button className="btn btn-out" onClick={clear}>Clear</button>
@@ -1597,23 +1627,62 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [events, setEvents] = useState(EVENTS_INIT);
 
-  // Load saved StudentVUE credentials from localStorage on first render
+  // ── Shared grade state (lifted so Grades + GPA stay in sync) ──
+  const [sharedClasses, setSharedClasses] = useState(CLASSES);
+  const [syncStatus, setSyncStatus] = useState("idle");
+  const [syncError, setSyncError]   = useState("");
+  const [lastSynced, setLastSynced] = useState(null);
+
+  // ── StudentVUE credentials (persisted to localStorage) ────────
   const [svCreds, setSvCreds] = useState(() => {
     try {
       const saved = localStorage.getItem("sv_creds");
-      return saved ? JSON.parse(saved) : { username: "", password: "", districtUrl: "" };
-    } catch {
-      return { username: "", password: "", districtUrl: "" };
-    }
+      return saved ? JSON.parse(saved) : { username:"", password:"", districtUrl:"" };
+    } catch { return { username:"", password:"", districtUrl:"" }; }
   });
 
+  // ── Core sync function shared by Grades page + auto-trigger ───
+  const syncGrades = async (creds) => {
+    const c = creds || svCreds;
+    if (!c?.username || !c?.password || !c?.districtUrl) {
+      setSyncStatus("nocreds");
+      return;
+    }
+    setSyncStatus("loading");
+    setSyncError("");
+    try {
+      const res = await fetch("/api/studentvue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username:c.username, password:c.password, districtUrl:c.districtUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sync failed");
+      if (!data.grades || data.grades.length === 0) throw new Error("No grades found. Your gradebook may be empty.");
+      setSharedClasses(data.grades);
+      setLastSynced(new Date());
+      setSyncStatus("done");
+    } catch (e) {
+      setSyncError(e.message);
+      setSyncStatus("error");
+    }
+  };
+
+  // ── When Settings saves creds, immediately trigger a sync ─────
+  const handleSaveCreds = (newCreds) => {
+    setSvCreds(newCreds);
+    try { localStorage.setItem("sv_creds", JSON.stringify(newCreds)); } catch {}
+    // Auto-sync right away so Grades + GPA update instantly
+    syncGrades(newCreds);
+  };
+
   const nav = [
-    {id:"home",icon:<Home size={14}/>,label:"Home"},
-    {id:"grades",icon:<BookOpen size={14}/>,label:"Grades"},
-    {id:"gpa",icon:<Calculator size={14}/>,label:"GPA"},
-    {id:"calendar",icon:<Calendar size={14}/>,label:"Calendar"},
-    {id:"importer",icon:<Sparkles size={14}/>,label:"Import"},
-    {id:"screentime",icon:<Clock size={14}/>,label:"Screen Time"},
+    {id:"home",      icon:<Home size={14}/>,      label:"Home"},
+    {id:"grades",    icon:<BookOpen size={14}/>,   label:"Grades"},
+    {id:"gpa",       icon:<Calculator size={14}/>, label:"GPA"},
+    {id:"calendar",  icon:<Calendar size={14}/>,   label:"Calendar"},
+    {id:"importer",  icon:<Sparkles size={14}/>,   label:"Import"},
+    {id:"screentime",icon:<Clock size={14}/>,      label:"Screen Time"},
   ];
 
   return (
@@ -1642,18 +1711,20 @@ export default function App() {
               Settings
             </div>
             <div className="sb-user" style={{marginTop:8}}>
-              {svCreds?.username || "Not connected"}
+              {svCreds?.username
+                ? <span style={{color:"#3a7a3a"}}>✓ {svCreds.username}</span>
+                : "Not connected"}
             </div>
           </div>
         </div>
         <div className="main">
-          {page==="home" && <HomePage events={events}/>}
-          {page==="grades" && <GradesPage svCreds={svCreds}/>}
-          {page==="gpa" && <GPAPage/>}
-          {page==="calendar" && <CalendarPage events={events} setEvents={setEvents}/>}
-          {page==="importer" && <ImporterPage setEvents={setEvents}/>}
+          {page==="home"       && <HomePage events={events}/>}
+          {page==="grades"     && <GradesPage classes={sharedClasses} syncStatus={syncStatus} syncError={syncError} lastSynced={lastSynced} onSync={()=>syncGrades()} onDismiss={()=>setSyncStatus("idle")}/>}
+          {page==="gpa"        && <GPAPage sharedClasses={sharedClasses}/>}
+          {page==="calendar"   && <div className="cal-page-wrap"><CalendarPage events={events} setEvents={setEvents}/></div>}
+          {page==="importer"   && <ImporterPage setEvents={setEvents}/>}
           {page==="screentime" && <ScreenTimePage/>}
-          {page==="settings" && <SettingsPage svCreds={svCreds} setSvCreds={setSvCreds}/>}
+          {page==="settings"   && <SettingsPage svCreds={svCreds} onSave={handleSaveCreds}/>}
         </div>
       </div>
     </>
