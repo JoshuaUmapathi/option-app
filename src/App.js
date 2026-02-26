@@ -624,63 +624,116 @@ function CalendarPage({ events, setEvents }) {
 }
 
 /* ── GRADES ──────────────────────────────────────────────── */
-function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDismiss }) {
+function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDismiss, syncPeriod }) {
   const [sel, setSel] = useState(null);
   const cls = classes.find(c => c.id === sel);
 
   // ── Detail view ──────────────────────────────────────────
-  if (cls) return (
-    <div className="page fu">
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",color:"var(--ink3)",fontSize:12,fontFamily:"var(--ff-m)"}} onClick={()=>setSel(null)}>
-        <ChevronLeft size={13}/>Back to all classes
-      </div>
-      <div className="gd-top">
-        <div className="gd-letter" style={{color:lColor(cls.letter)}}>{cls.letter}</div>
-        <div style={{flex:1}}>
-          <div className="gd-nm">{cls.name}</div>
-          <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>{cls.pct}% · {cls.code}{cls.teacher?` · ${cls.teacher}`:""}{cls.room?` · Room ${cls.room}`:""}</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
-            <span className="tag t-reg">Weighted GP: {cls.wGP}</span>
-            <span className="tag t-reg">Unweighted GP: {cls.uGP}</span>
-            {cls.period && <span className="tag t-reg">Period {cls.period}</span>}
+  if (cls) {
+    // Group assignments by their actual category string from StudentVUE
+    const categoryGroups = {};
+    for (const a of cls.assignments) {
+      const key = a.category || a.type || "Other";
+      if (!categoryGroups[key]) categoryGroups[key] = [];
+      categoryGroups[key].push(a);
+    }
+    const categories = Object.keys(categoryGroups).sort();
+
+    // Compute per-category average
+    const catAvg = (items) => {
+      const scored = items.filter(a => a.score !== undefined && a.total > 0);
+      if (!scored.length) return null;
+      const pts   = scored.reduce((s,a) => s + a.score, 0);
+      const total = scored.reduce((s,a) => s + a.total, 0);
+      return (pts / total) * 100;
+    };
+
+    return (
+      <div className="page fu">
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",color:"var(--ink3)",fontSize:12,fontFamily:"var(--ff-m)"}} onClick={()=>setSel(null)}>
+          <ChevronLeft size={13}/>Back to all classes
+        </div>
+
+        {/* Class header */}
+        <div className="gd-top">
+          <div className="gd-letter" style={{color:lColor(cls.letter)}}>{cls.letter}</div>
+          <div style={{flex:1}}>
+            <div className="gd-nm">{cls.name}</div>
+            <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>
+              {cls.pct}%{cls.teacher ? ` · ${cls.teacher}` : ""}{cls.room ? ` · Room ${cls.room}` : ""}
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
+              <span className="tag t-reg">Weighted GP: {cls.wGP}</span>
+              <span className="tag t-reg">Unweighted GP: {cls.uGP}</span>
+              {cls.period && <span className="tag t-reg">Period {cls.period}</span>}
+              <span className="tag t-reg">{cls.assignments.length} assignments</span>
+            </div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"var(--ff-d)",fontSize:52,fontWeight:900,letterSpacing:"-2px",color:lColor(cls.letter),lineHeight:1}}>{cls.pct}%</div>
+            <div className="pb" style={{width:110,marginLeft:"auto",marginTop:6,height:5}}>
+              <div className="pf" style={{width:`${cls.pct}%`,background:pColor(cls.pct)}}/>
+            </div>
           </div>
         </div>
-        <div style={{textAlign:"right"}}>
-          <div style={{fontFamily:"var(--ff-d)",fontSize:52,fontWeight:900,letterSpacing:"-2px",color:lColor(cls.letter),lineHeight:1}}>{cls.pct}%</div>
-          <div className="pb" style={{width:110,marginLeft:"auto",marginTop:6,height:5}}><div className="pf" style={{width:`${cls.pct}%`,background:pColor(cls.pct)}}/></div>
-        </div>
-      </div>
-      {["Final","Summative","Formative"].map(type => {
-        const items = cls.assignments.filter(a => a.type === type);
-        if (!items.length) return null;
-        const w = {Final:"40%",Summative:"45%",Formative:"15%"};
-        return (
-          <div key={type}>
-            <div className="sec-label">{type} · {w[type]} weight</div>
-            {items.map((a,i) => {
-              const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
-              const apt = hasPts ? (a.score/a.total)*100 : null;
-              return (
-                <div key={i} className="gd-row">
-                  <div className="gd-n">{a.name}</div>
-                  <div className="gd-d">{a.date}</div>
-                  {hasPts ? (
-                    <><div className="gd-s" style={{color:pColor(apt)}}>{a.score}/{a.total}</div><div className="gd-pct">{Math.round(apt)}%</div></>
-                  ) : (
-                    <div className="gd-pct" style={{color:"var(--ink4)"}}>—</div>
-                  )}
-                </div>
-              );
-            })}
+
+        {/* Assignments — no assignments state */}
+        {cls.assignments.length === 0 && (
+          <div style={{textAlign:"center",padding:"40px 32px",color:"var(--ink3)",fontSize:13,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)"}}>
+            No assignments recorded for this period yet.
           </div>
-        );
-      })}
-      {cls.assignments.length === 0 && (
-        <div style={{textAlign:"center",padding:"32px",color:"var(--ink3)",fontSize:13}}>No assignments recorded yet.</div>
-      )}
-    </div>
-  );
+        )}
+
+        {/* Assignments grouped by real category */}
+        {categories.map(cat => {
+          const items = categoryGroups[cat];
+          const avg = catAvg(items);
+          return (
+            <div key={cat} style={{marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0 5px",borderBottom:"1px solid var(--border)",marginBottom:6}}>
+                <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>{cat}</div>
+                {avg !== null && (
+                  <div style={{fontFamily:"var(--ff-m)",fontSize:10,color:pColor(avg),fontWeight:600}}>{avg.toFixed(1)}% avg</div>
+                )}
+              </div>
+              {items.map((a, i) => {
+                const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
+                const apt    = hasPts ? (a.score / a.total) * 100 : null;
+                const isExc  = a.rawScore && /exc|excused/i.test(a.rawScore);
+                const isMiss = a.rawScore && /miss|incomplete|ng/i.test(a.rawScore);
+                const notGraded = !hasPts && !isExc && !isMiss;
+
+                return (
+                  <div key={i} className="gd-row" style={{borderLeft: apt !== null ? `3px solid ${pColor(apt)}` : "3px solid var(--border)"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="gd-n" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
+                      {a.notes && <div style={{fontSize:10,color:"var(--ink3)",marginTop:1,fontFamily:"var(--ff-m)"}}>{a.notes}</div>}
+                    </div>
+                    <div className="gd-d">{a.date}</div>
+                    {hasPts ? (
+                      <>
+                        <div className="gd-s" style={{color:pColor(apt),minWidth:52,textAlign:"right"}}>
+                          {Number.isInteger(a.score) ? a.score : a.score.toFixed(1)}/{Number.isInteger(a.total) ? a.total : a.total.toFixed(1)}
+                        </div>
+                        <div className="gd-pct" style={{minWidth:38,color:pColor(apt)}}>{Math.round(apt)}%</div>
+                      </>
+                    ) : isExc ? (
+                      <div className="gd-pct" style={{color:"var(--blue)",minWidth:52}}>Exc</div>
+                    ) : isMiss ? (
+                      <div className="gd-pct" style={{color:"var(--red)",minWidth:52}}>Missing</div>
+                    ) : (
+                      <div className="gd-pct" style={{color:"var(--ink4)",minWidth:52}}>Not graded</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   // ── Grid view ────────────────────────────────────────────
   return (
@@ -689,7 +742,7 @@ function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDism
         <div className="ph-row">
           <div>
             <div className="ph-title">Grades</div>
-            <div className="ph-sub">{syncStatus==="done" ? `Synced from StudentVUE · ${classes.length} classes` : `${classes.length} classes · click to expand`}</div>
+            <div className="ph-sub">{syncStatus==="done" ? `${syncPeriod ? syncPeriod + " · " : ""}${classes.length} classes from StudentVUE` : `${classes.length} classes · click to expand`}</div>
           </div>
           <div className="btn-row">
             {syncStatus==="done" && lastSynced && (
@@ -1632,6 +1685,7 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState("idle");
   const [syncError, setSyncError]   = useState("");
   const [lastSynced, setLastSynced] = useState(null);
+  const [syncPeriod, setSyncPeriod] = useState("");
 
   // ── StudentVUE credentials (persisted to localStorage) ────────
   const [svCreds, setSvCreds] = useState(() => {
@@ -1661,6 +1715,7 @@ export default function App() {
       if (!data.grades || data.grades.length === 0) throw new Error("No grades found. Your gradebook may be empty.");
       setSharedClasses(data.grades);
       setLastSynced(new Date());
+      if (data.period) setSyncPeriod(data.period);
       setSyncStatus("done");
     } catch (e) {
       setSyncError(e.message);
@@ -1719,7 +1774,7 @@ export default function App() {
         </div>
         <div className="main">
           {page==="home"       && <HomePage events={events}/>}
-          {page==="grades"     && <GradesPage classes={sharedClasses} syncStatus={syncStatus} syncError={syncError} lastSynced={lastSynced} onSync={()=>syncGrades()} onDismiss={()=>setSyncStatus("idle")}/>}
+          {page==="grades"     && <GradesPage classes={sharedClasses} syncStatus={syncStatus} syncError={syncError} lastSynced={lastSynced} syncPeriod={syncPeriod} onSync={()=>syncGrades()} onDismiss={()=>setSyncStatus("idle")}/>}
           {page==="gpa"        && <GPAPage sharedClasses={sharedClasses}/>}
           {page==="calendar"   && <div className="cal-page-wrap"><CalendarPage events={events} setEvents={setEvents}/></div>}
           {page==="importer"   && <ImporterPage setEvents={setEvents}/>}
