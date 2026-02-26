@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Parse body safely — Vercel may deliver as string or parsed object
   let body = req.body;
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch {
@@ -23,17 +22,25 @@ export default async function handler(req, res) {
   }
 
   const base = districtUrl.trim().replace(/\/+$/, "");
-  const endpoint = `${base}/Service/PXPCommunication.asmx`;
 
-  const soapBody = [
+  // ── Try multiple endpoint paths — different districts use different structures ──
+  // Most districts: /Service/PXPCommunication.asmx
+  // FCPS and some others: /SVUE/Service/PXPCommunication.asmx
+  const candidateEndpoints = [
+    `${base}/Service/PXPCommunication.asmx`,
+    `${base}/SVUE/Service/PXPCommunication.asmx`,
+    `${base}/PXP2/Service/PXPCommunication.asmx`,
+  ];
+
+  const soapFor = (u, p) => [
     '<?xml version="1.0" encoding="utf-8"?>',
     '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
     '  xmlns:xsd="http://www.w3.org/2001/XMLSchema"',
     '  xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">',
     '  <soap:Body>',
     '    <ProcessWebServiceRequest xmlns="http://edupoint.com/webservices/">',
-    `      <userID>${escapeXml(username)}</userID>`,
-    `      <password>${escapeXml(password)}</password>`,
+    `      <userID>${escapeXml(u)}</userID>`,
+    `      <password>${escapeXml(p)}</password>`,
     '      <skipLoginLog>1</skipLoginLog>',
     '      <parent>0</parent>',
     '      <webServiceHandleName>PXPWebServices</webServiceHandleName>',
@@ -44,61 +51,78 @@ export default async function handler(req, res) {
     '</soap:Envelope>',
   ].join("\n");
 
+  // Try each endpoint until one returns valid XML
   let xmlText = "";
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": "http://edupoint.com/webservices/ProcessWebServiceRequest",
-        "User-Agent": "Mozilla/5.0",
-      },
-      body: soapBody,
-      signal: AbortSignal.timeout(15000),
-    });
+  let successEndpoint = "";
+  let lastError = "";
 
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      if (errText.includes("<html") || errText.includes("<!DOCTYPE")) {
-        return res.status(400).json({
-          error: `Got an HTML page from "${base}". Your district URL may be wrong. Try removing any path after the domain.`,
-        });
-      }
-      return res.status(response.status).json({
-        error: `StudentVUE server returned HTTP ${response.status}. Check your district URL.`,
+  for (const endpoint of candidateEndpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/xml; charset=utf-8",
+          "SOAPAction": "http://edupoint.com/webservices/ProcessWebServiceRequest",
+          "User-Agent": "Mozilla/5.0",
+        },
+        body: soapFor(username, password),
+        signal: AbortSignal.timeout(12000),
       });
+
+      const text = await response.text();
+
+      // Skip HTML responses (wrong path, login redirect, etc.)
+      const trimmed = text.trimStart();
+      if (trimmed.startsWith("<html") || trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<!doctype")) {
+        lastError = `Endpoint ${endpoint} returned an HTML page (wrong path).`;
+        continue;
+      }
+
+      // Skip non-200 that aren't XML
+      if (!response.ok && !text.includes("ProcessWebServiceRequestResult")) {
+        lastError = `Endpoint ${endpoint} returned HTTP ${response.status}.`;
+        continue;
+      }
+
+      // If we got SOAP XML back, this is the right endpoint
+      if (text.includes("ProcessWebServiceRequestResult") || text.includes("<soap:")) {
+        xmlText = text;
+        successEndpoint = endpoint;
+        break;
+      }
+
+      lastError = `Endpoint ${endpoint} returned unexpected content.`;
+    } catch (e) {
+      const isTimeout = e?.name === "TimeoutError" || e?.name === "AbortError";
+      lastError = isTimeout
+        ? `Endpoint ${endpoint} timed out.`
+        : `Endpoint ${endpoint} unreachable: ${e?.message}`;
+      // Don't break — try next endpoint
     }
+  }
 
-    xmlText = await response.text();
-  } catch (e) {
-    const isTimeout = e?.name === "TimeoutError" || e?.name === "AbortError";
+  if (!xmlText) {
     return res.status(502).json({
-      error: isTimeout
-        ? `Request timed out connecting to "${base}". The server may be unreachable.`
-        : `Could not connect to "${base}". Double-check your district URL includes https://.`,
-      detail: e?.message,
+      error: `Could not reach StudentVUE at "${base}". None of the standard endpoint paths worked. Make sure your district URL is correct and starts with https://.`,
+      detail: lastError,
     });
   }
 
-  if (!xmlText || xmlText.trim().length === 0) {
-    return res.status(502).json({ error: "StudentVUE returned an empty response." });
-  }
-
-  if (xmlText.trimStart().startsWith("<html") || xmlText.trimStart().startsWith("<!DOCTYPE")) {
-    return res.status(400).json({
-      error: `Got an HTML page instead of grade data. District URL may be wrong — got HTML instead of XML. Correct format: "https://sisstudent.fcps.edu"`,
-    });
-  }
-
-  const failPhrases = ["Invalid user", "Login failed", "The user name or password", "credentials are incorrect", "not authorized"];
+  // ── Check for auth failure ────────────────────────────────────
+  const failPhrases = [
+    "Invalid user", "Login failed", "The user name or password",
+    "credentials are incorrect", "not authorized", "Invalid credentials",
+  ];
   if (failPhrases.some(p => xmlText.includes(p))) {
-    return res.status(401).json({ error: "Invalid username or password." });
+    return res.status(401).json({ error: "Invalid username or password. Check your StudentVUE credentials." });
   }
 
+  // ── Extract inner XML from SOAP envelope ─────────────────────
   const innerMatch = xmlText.match(/<ProcessWebServiceRequestResult>([\s\S]*?)<\/ProcessWebServiceRequestResult>/);
   if (!innerMatch) {
     return res.status(500).json({
-      error: "Unexpected response from StudentVUE. The service endpoint may be wrong for your district.",
+      error: "Got a SOAP response but couldn't find grade data inside it. Your account may not have gradebook access.",
+      endpoint_used: successEndpoint,
       raw_preview: xmlText.slice(0, 300),
     });
   }
@@ -109,11 +133,16 @@ export default async function handler(req, res) {
 
   try {
     const grades = parseGradebook(innerXml);
-    return res.status(200).json({ grades });
+    return res.status(200).json({ grades, endpoint_used: successEndpoint });
   } catch (e) {
-    return res.status(500).json({ error: "Failed to parse gradebook data.", detail: e?.message });
+    return res.status(500).json({
+      error: "Connected to StudentVUE but failed to parse the gradebook data.",
+      detail: e?.message,
+    });
   }
 }
+
+// ── Helpers ───────────────────────────────────────────────────
 
 function escapeXml(str) {
   return String(str)
@@ -124,7 +153,8 @@ function escapeXml(str) {
 function parseAttrs(attrStr) {
   const obj = {};
   for (const [, key, val] of attrStr.matchAll(/(\w+)="([^"]*)"/g)) {
-    obj[key] = val.replace(/&amp;/g,"&").replace(/&lt;/g,"<")
+    obj[key] = val
+      .replace(/&amp;/g,"&").replace(/&lt;/g,"<")
       .replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'");
   }
   return obj;
@@ -134,12 +164,13 @@ function formatDate(raw) {
   if (!raw) return "";
   try {
     const d = new Date(raw);
-    return isNaN(d) ? raw : d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    return isNaN(d) ? raw : d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
   } catch { return raw; }
 }
 
 function parseGradebook(xml) {
   const courses = [];
+
   for (const [, attrs, body] of xml.matchAll(/<Course\s([^>]*)>([\s\S]*?)<\/Course>/g)) {
     const attr    = parseAttrs(attrs);
     const title   = attr.Title || attr.CourseName || "Unknown Course";
@@ -160,15 +191,20 @@ function parseGradebook(xml) {
 
     const assignments = [];
     for (const [, asgnAttrs] of body.matchAll(/<Assignment\s([^>]*)\/>/g)) {
-      const a = parseAttrs(asgnAttrs);
+      const a        = parseAttrs(asgnAttrs);
       const scoreStr = a.Score || a.Points || "";
       const possStr  = a.PointsPossible || a.ScorePossible || "";
-      const hasScore = scoreStr && possStr && !scoreStr.includes("*") && !/not|graded|missing/i.test(scoreStr);
-      const cat      = (a.Type || a.Category || "").toLowerCase();
+      const hasScore = scoreStr && possStr
+        && !scoreStr.includes("*")
+        && !/not|graded|missing/i.test(scoreStr);
+      const cat = (a.Type || a.Category || "").toLowerCase();
+
       assignments.push({
         name:     a.Measure || a.MeasureName || "Assignment",
         date:     formatDate(a.Date || a.DueDate || ""),
-        type:     /final|midterm|semester/.test(cat) ? "Final" : /test|exam|assess|summ/.test(cat) ? "Summative" : "Formative",
+        type:     /final|midterm|semester/.test(cat) ? "Final"
+                : /test|exam|assess|summ/.test(cat)  ? "Summative"
+                : "Formative",
         score:    hasScore ? parseFloat(scoreStr) : undefined,
         total:    hasScore ? parseFloat(possStr)  : undefined,
         category: a.Type || a.Category || "",
@@ -176,15 +212,17 @@ function parseGradebook(xml) {
     }
 
     courses.push({
-      id: courses.length+1,
-      code: `PD${period}-${title.slice(0,3).toUpperCase()}`,
-      name: title, type,
-      pct: +pct.toFixed(1),
+      id:     courses.length + 1,
+      code:   `PD${period}-${title.slice(0,3).toUpperCase()}`,
+      name:   title,
+      type,
+      pct:    +pct.toFixed(1),
       letter: letterGrade,
-      wGP: +(baseGP+bonus).toFixed(1),
-      uGP: +baseGP.toFixed(1),
+      wGP:    +(baseGP + bonus).toFixed(1),
+      uGP:    +baseGP.toFixed(1),
       period, room, teacher, assignments,
     });
   }
-  return courses.sort((a,b)=>(parseInt(a.period)||99)-(parseInt(b.period)||99));
+
+  return courses.sort((a,b) => (parseInt(a.period)||99) - (parseInt(b.period)||99));
 }
