@@ -1,35 +1,94 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Home, BookOpen, Calculator, Calendar, Clock, ChevronLeft,
-  ChevronRight, Plus, Upload, Link, Image, FileText,
-  AlertTriangle, Lock, Loader, Sparkles, ArrowRight
+  Home,
+  BookOpen,
+  Calculator,
+  Calendar,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Upload,
+  Link,
+  Image,
+  FileText,
+  AlertTriangle,
+  Lock,
+  Loader,
+  Sparkles,
+  ArrowRight,
+  Play,
+  Pause,
+  Square,
+  Info,
+  Layers,
+  List,
+  TrendingDown,
+  TrendingUp,
+  Lightbulb
 } from "lucide-react";
 
+import IntegrationsPage from "./pages/Integrations";
+
+/* ── UTILS ─────────────────────────────────────────────────── */
+function parseICal(text) {
+  const events = [];
+  const items = text.split("BEGIN:VEVENT");
+  for (let i = 1; i < items.length; i++) {
+    const it = items[i];
+    const sum = it.match(/SUMMARY:(.*)/)?.[1]?.trim() || "Untitled Event";
+    let start = it.match(/DTSTART;VALUE=DATE:(.*)/)?.[1] || it.match(/DTSTART:(.*)/)?.[1] || "";
+    if (start) {
+      start = start.replace(/T\d+Z$/, "");
+      const y = start.substring(0, 4), m = start.substring(4, 6), d = start.substring(6, 8);
+      events.push({ name: sum, date: `${y}-${m}-${d}`, priority: "med", subject: "" });
+    }
+  }
+  return events;
+}
+
+function processAIScan(text) {
+  const results = [];
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const dateM = line.match(/(\d{1,2}\/\d{1,2})|(\d{4}-\d{2}-\d{2})/);
+    const date = dateM ? (dateM[2] || `2026-${dateM[1].split('/')[0].padStart(2,'0')}-${dateM[1].split('/')[1].padStart(2,'0')}`) : "2026-04-02";
+    let name = line.replace(/(\d{1,2}\/\d{1,2})|(\d{4}-\d{2}-\d{2})/, "").trim();
+    name = name.replace(/^[-*•]\s+/, "");
+    if (name) results.push({ name, date, priority: "med", subject: "" });
+  }
+  return results;
+}
+
+
 /* ── Fonts ─────────────────────────────────────────────────── */
-const FONT = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap');`;
+const FONT = `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');`;
 
 /* ── CSS ───────────────────────────────────────────────────── */
 const CSS = `
 ${FONT}
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#f5f4f1;
-  --surface:#ffffff;
-  --surface2:#eeecea;
-  --border:#e2dfda;
-  --border2:#ccc9c1;
-  --ink:#0d0c0a;
-  --ink2:#4e4c47;
-  --ink3:#908d86;
-  --ink4:#cac7c0;
-  --red:#b83232;
-  --orange:#c45e1a;
-  --green:#1a6e40;
-  --blue:#1b4a82;
-  --r:6px;
-  --ff-d:'Playfair Display',serif;
-  --ff-m:'DM Mono',monospace;
-  --ff-s:'Instrument Sans',sans-serif;
+  --bg: #111116;
+  --surface: #15151b;
+  --surface2: #1c1c24;
+  --surface3: #22222d;
+  --border: rgba(255,255,255,0.03);
+  --border2: rgba(255,255,255,0.08);
+  --ink: #ffffff;
+  --ink2: rgba(255,255,255,0.7);
+  --ink3: rgba(255,255,255,0.5);
+  --ink4: rgba(255,255,255,0.3);
+  --red: #ef4444;
+  --orange: #f97316;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --r: 10px;
+  --ff-d: 'Plus Jakarta Sans', sans-serif;
+  --ff-m: 'JetBrains Mono', monospace;
+  --ff-s: 'Inter', sans-serif;
 }
 body{font-family:var(--ff-s);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;}
 button,input,select,textarea{font-family:var(--ff-s);}
@@ -37,243 +96,422 @@ button,input,select,textarea{font-family:var(--ff-s);}
 .shell{display:flex;height:100vh;overflow:hidden;}
 
 /* ── Sidebar ─── */
-.sb{
-  width:210px;min-width:210px;background:var(--ink);
-  display:flex;flex-direction:column;
-}
-.sb-logo{padding:20px 18px 16px;border-bottom:1px solid #1e1d1a;}
-.sb-wordmark{font-family:var(--ff-d);font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;font-style:italic;}
-.sb-tagline{font-family:var(--ff-m);font-size:9px;color:#3a3a35;letter-spacing:3px;text-transform:uppercase;margin-top:3px;}
-.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
-.sb-sec{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#333;padding:12px 10px 5px;}
+.sb{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.sb-logo{padding:24px 20px 20px;display:flex;align-items:center;gap:12px;}
+.sb-logo-icon{width:24px;height:24px;background:#ffffff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--bg);flex-shrink:0;}
+.sb-wordmark{font-family:var(--ff-d);font-size:18px;font-weight:800;color:var(--ink);letter-spacing:0.5px;}
+.sb-nav{flex:1;padding:8px 12px;overflow-y:auto;}
 .sb-item{
-  display:flex;align-items:center;gap:9px;padding:8px 10px;
-  border-radius:5px;cursor:pointer;font-size:13px;font-weight:500;
-  color:#666;transition:all 0.12s;margin-bottom:1px;
+  display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;
+  color:#ffffff;transition:all 0.15s ease;margin-bottom:2px;
 }
-.sb-item:hover{background:#191917;color:#aaa;}
-.sb-item.on{background:#fff;color:var(--ink);}
-.sb-item.on svg{color:var(--ink);}
-.sb-item svg{width:14px;height:14px;flex-shrink:0;color:#444;}
-.sb-foot{padding:14px 18px;border-top:1px solid #181816;}
-.sb-user{font-size:11px;color:#383830;font-family:var(--ff-m);}
+.sb-item:hover{background:rgba(255,255,255,0.03);color:var(--ink2);}
+.sb-item.on{background:rgba(139,92,246,0.13);color:#c4b5fd;}
+.sb-item.on svg{color:#c4b5fd;}
+.sb-item svg{width:15px;height:15px;flex-shrink:0;color:var(--ink3);transition:color 0.15s;}
+.sb-foot{padding:12px 10px;border-top:1px solid var(--border);}
+.sb-user{font-size:11px;color:var(--green);font-family:var(--ff-m);padding:8px 12px;font-weight:600;}
 
 /* ── Main ─── */
 .main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:column;}
-.page{padding:28px 30px;max-width:1080px;}
+.page{padding:60px;width:100%;display:flex;flex-direction:column;align-items:center;}
+.page-container{max-width:1400px;width:100%;margin:0 auto;}
 .cal-page-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 
-/* ── Page header ─── */
-.ph{margin-bottom:22px;}
-.ph-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
-.ph-title{font-family:var(--ff-d);font-size:28px;font-weight:700;letter-spacing:-0.5px;line-height:1.1;}
-.ph-sub{font-family:var(--ff-m);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-top:4px;}
-
 /* ── Cards ─── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
-.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.ct{font-family:var(--ff-d);font-size:15px;font-weight:600;letter-spacing:-0.2px;}
+.card{
+  background:rgba(26,26,42,0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px 24px;
+  transition:all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.card:hover{border-color:var(--border2); transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,0,0,0.25);}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.ct{font-family:var(--ff-d);font-size:16px;font-weight:700;color:var(--ink);}
 
 /* ── Grid ─── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
 
 /* ── Buttons ─── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:var(--r);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.12s;font-family:var(--ff-s);white-space:nowrap;}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:9px 16px;
+  border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;
+  transition:all 0.15s ease;font-family:var(--ff-s);white-space:nowrap;
+}
 .btn svg{width:13px;height:13px;flex-shrink:0;}
-.btn-dark{background:var(--ink);color:#fff;}
-.btn-dark:hover{background:#222;}
-.btn-out{background:transparent;border:1px solid var(--border2);color:var(--ink2);}
-.btn-out:hover{border-color:var(--ink);color:var(--ink);}
-.btn-ghost{background:transparent;color:var(--ink3);border:1px solid transparent;}
+.btn-dark{background:var(--blue);color:#fff;}
+.btn-dark:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-out{background:transparent;border:1px solid var(--border2);color:var(--ink);}
+.btn-out:hover{border-color:var(--blue);color:var(--blue);}
+.btn-ghost{background:transparent;color:var(--ink3);border:none;}
 .btn-ghost:hover{background:var(--surface2);color:var(--ink);}
-.btn-red{background:#b83232;color:#fff;}
-.btn-red:hover{background:#9e2b2b;}
-.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover{opacity:0.9;}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:8px;}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
 
 /* ── Priority colors ─── */
 .p-high{color:var(--red);}
 .p-med{color:var(--orange);}
 .p-low{color:var(--green);}
 .p-test{color:var(--blue);}
-.bg-high{background:#fdf0f0;border-left:3px solid var(--red);}
-.bg-med{background:#fdf4ee;border-left:3px solid var(--orange);}
-.bg-low{background:#eef7f2;border-left:3px solid var(--green);}
-.bg-test{background:#eef2fb;border-left:3px solid var(--blue);}
+.bg-high{background:rgba(239,68,68,0.08);border-left:3px solid var(--red);}
+.bg-med{background:rgba(249,115,22,0.08);border-left:3px solid var(--orange);}
+.bg-low{background:rgba(74,222,128,0.08);border-left:3px solid var(--green);}
+.bg-test{background:rgba(139,92,246,0.08);border-left:3px solid var(--blue);}
 
 /* ── Tags ─── */
-.tag{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--ff-m);letter-spacing:0.3px;text-transform:uppercase;}
-.t-high{background:#fde0e0;color:var(--red);}
-.t-med{background:#fde8d8;color:var(--orange);}
-.t-low{background:#e0f3e8;color:var(--green);}
-.t-test{background:#dde8f8;color:var(--blue);}
-.t-ap{background:var(--ink);color:#fff;}
-.t-hn{background:#4e4c47;color:#fff;}
-.t-reg{background:var(--surface2);color:var(--ink2);}
+.tag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--ff-m);letter-spacing:0.5px;text-transform:uppercase;}
+.t-high{background:rgba(239,68,68,0.15);color:#fca5a5;}
+.t-med{background:rgba(249,115,22,0.15);color:#fdba74;}
+.t-low{background:rgba(74,222,128,0.15);color:#86efac;}
+.t-test{background:rgba(139,92,246,0.15);color:#c4b5fd;}
+.t-ap{background:rgba(255,255,255,0.12);color:#fff;}
+.t-hn{background:rgba(255,255,255,0.08);color:var(--ink2);}
+.t-reg{background:var(--surface2);color:var(--ink3);}
 
 /* ── Forms ─── */
-.fl{display:block;font-size:10px;font-weight:600;color:var(--ink3);margin-bottom:5px;text-transform:uppercase;letter-spacing:1.2px;font-family:var(--ff-m);}
-.fi{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;font-size:13px;color:var(--ink);outline:none;transition:border 0.12s;}
-.fi:focus{border-color:var(--ink);}
-.fs{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;font-size:13px;color:var(--ink);outline:none;appearance:none;cursor:pointer;}
-.fg{margin-bottom:12px;}
+.fl{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:7px;font-family:var(--ff-s);}
+.fi{width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:9px;padding:11px 14px;font-size:13px;color:var(--ink);outline:none;transition:border 0.2s;}
+.fi:focus{border-color:var(--blue);}
+.fs{width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:9px;padding:11px 14px;font-size:13px;color:var(--ink);outline:none;appearance:none;cursor:pointer;}
+.fg{margin-bottom:14px;}
 
 /* ── Progress ─── */
-.pb{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
-.pf{height:100%;border-radius:2px;transition:width 0.5s;}
+.pb{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.pf{height:100%;border-radius:3px;transition:width 0.5s ease;background:var(--blue);}
 
 /* ── Toggle ─── */
-.tog{position:relative;width:38px;height:21px;flex-shrink:0;}
+.tog{position:relative;width:40px;height:22px;flex-shrink:0;}
 .tog input{opacity:0;width:0;height:0;}
-.tog-t{position:absolute;cursor:pointer;inset:0;background:var(--surface2);border:1px solid var(--border2);border-radius:21px;transition:.2s;}
-.tog input:checked+.tog-t{background:var(--ink);border-color:var(--ink);}
-.tog-t::before{content:'';position:absolute;width:15px;height:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s;}
-.tog input:checked+.tog-t::before{transform:translateX(17px);}
+.tog-t{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.1);border:1px solid var(--border);border-radius:22px;transition:.25s;}
+.tog input:checked+.tog-t{background:var(--blue);border-color:var(--blue);}
+.tog-t::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.tog input:checked+.tog-t::before{transform:translateX(18px);}
 
 /* ── Divider ─── */
-.dv{height:1px;background:var(--border);margin:16px 0;}
+.dv{height:1px;background:var(--border);margin:20px 0;}
 
 /* ── Modal ─── */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:26px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;}
-.mt{font-family:var(--ff-d);font-size:20px;font-weight:700;margin-bottom:18px;letter-spacing:-0.3px;}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(10px);}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.mt{font-family:var(--ff-d);font-size:22px;font-weight:700;margin-bottom:20px;color:var(--ink);}
 
 /* ── Asgn row ─── */
-.ar{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:var(--r);margin-bottom:4px;border:1px solid transparent;}
-.an{font-size:13px;font-weight:600;flex:1;min-width:0;}
-.am{font-family:var(--ff-m);font-size:10px;color:var(--ink3);}
+.ar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:10px;margin-bottom:6px;border:1px solid transparent;background:var(--surface);}
+.an{font-size:14px;font-weight:600;flex:1;min-width:0;color:var(--ink);}
+.am{font-family:var(--ff-m);font-size:11px;color:var(--ink3);margin-top:2px;}
 
 /* ── Scrollbar ─── */
-::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
 /* ── Animations ─── */
-@keyframes fu{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.fu{animation:fu 0.25s ease both;}
-@keyframes sd{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
-.sd{animation:sd 0.2s ease both;}
+@keyframes fu{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fu 0.3s ease both;}
+@keyframes sd{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.sd{animation:sd 0.25s ease both;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.spin{animation:spin 0.8s linear infinite;}
+.spin{animation:spin 0.9s linear infinite;}
 
 /* ── Calendar ─── */
-.cal-page{display:flex;flex-direction:column;flex:1;padding:20px 20px 12px;overflow:hidden;min-height:0;}
-.cal-wrap{display:flex;gap:12px;flex:1;min-height:0;}
-.cal-main{flex:1;min-width:0;display:flex;flex-direction:column;}
-.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;flex-shrink:0;}
-.cal-dow{text-align:center;font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:4px 2px;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:2px;flex:1;min-height:0;}
-.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:5px;cursor:pointer;transition:border-color 0.12s;overflow:hidden;display:flex;flex-direction:column;}
-.cal-cell:hover{border-color:var(--border2);}
-.cal-cell.today{border-color:var(--ink);border-width:2px;}
-.cal-cell.selected{border-color:var(--ink);background:#f0ede8;}
-.cal-cell.other{background:var(--surface2);opacity:0.35;}
-.cal-num{font-family:var(--ff-m);font-size:10px;font-weight:500;margin-bottom:2px;color:var(--ink2);flex-shrink:0;line-height:1;}
-.cal-cell.today .cal-num{font-weight:700;color:var(--ink);}
-.cal-cell.selected .cal-num{color:var(--ink);font-weight:700;}
-.cal-ev{font-size:8px;padding:1px 4px;border-radius:2px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ff-s);font-weight:500;display:flex;align-items:center;gap:2px;flex-shrink:0;line-height:1.5;}
-.cal-ev.high{background:#fde0e0;color:var(--red);}
-.cal-ev.med{background:#fde8d8;color:var(--orange);}
-.cal-ev.low{background:#e0f3e8;color:var(--green);}
-.cal-ev.test{background:#dde8f8;color:var(--blue);}
-.cal-more{font-size:8px;color:var(--ink3);font-family:var(--ff-m);padding:0 2px;line-height:1.4;flex-shrink:0;}
-.cal-key{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;flex-shrink:0;}
-.ck-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--ff-m);color:var(--ink2);}
-.ck-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.cal-page{display:flex;flex-direction:column;flex:1;padding:0;overflow:hidden;min-height:0;width:100%;}
+.cal-wrap{display:flex;gap:0;flex:1;min-height:0;}
+.cal-main{flex:1;min-width:0;display:flex;flex-direction:column;padding:16px 20px 12px;}
+.cal-hd{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:1px;flex-shrink:0;}
+.cal-dow{text-align:center;font-family:var(--ff-m);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.8);padding:6px 0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:1px;flex:1;min-height:0;background:var(--border);}
+.cal-cell{background:var(--bg);padding:8px;cursor:pointer;transition:background 0.15s;overflow:hidden;display:flex;flex-direction:column;}
+.cal-cell:hover{background:var(--surface);}
+.cal-cell.today{background:rgba(99,102,241,0.1);}
+.cal-cell.selected{background:rgba(139,92,246,0.18);}
+.cal-cell.other{opacity:0.25;}
+.cal-num{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--ink2);line-height:1;}
+.cal-cell.today .cal-num{color:var(--blue);font-weight:800;}
+.cal-cell.selected .cal-num{color:var(--blue);}
+.cal-ev{font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;flex-shrink:0;line-height:1.6;}
+.cal-ev.high{background:rgba(239,68,68,0.2);color:#fca5a5;}
+.cal-ev.med{background:rgba(249,115,22,0.2);color:#fdba74;}
+.cal-ev.low{background:rgba(74,222,128,0.2);color:#86efac;}
+.cal-ev.test{background:rgba(139,92,246,0.2);color:#c4b5fd;}
+.cal-more{font-size:10px;color:var(--ink3);font-family:var(--ff-m);padding:0 2px;line-height:1.4;flex-shrink:0;}
+.cal-key{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ck-item{display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--ff-s);color:var(--ink2);font-weight:500;}
+.ck-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 
 /* Day sidebar */
-.day-sb{width:210px;min-width:210px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
-.day-sb-hd{padding:10px 13px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.day-sb-date{font-family:var(--ff-d);font-size:15px;font-weight:700;letter-spacing:-0.3px;line-height:1.2;}
-.day-sb-sub{font-family:var(--ff-m);font-size:9px;color:var(--ink3);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
-.day-sb-body{flex:1;overflow-y:auto;padding:8px;}
-.day-sb-empty{padding:20px 12px;text-align:center;color:var(--ink4);font-size:12px;font-family:var(--ff-m);}
-.day-ev-row{display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:var(--r);border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color 0.12s;}
+.day-sb{width:220px;min-width:220px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.day-sb-hd{padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.day-sb-date{font-family:var(--ff-d);font-size:17px;font-weight:700;color:var(--ink);}
+.day-sb-sub{font-size:11px;color:rgba(255,255,255,0.75);margin-top:3px;font-family:var(--ff-m);}
+.day-sb-body{flex:1;overflow-y:auto;padding:10px;}
+.day-sb-empty{padding:32px 16px;text-align:center;color:var(--ink4);font-size:12px;}
+.day-ev-row{display:flex;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all 0.15s;background:rgba(0,0,0,0.1);}
 .day-ev-row:hover{border-color:var(--border2);}
-.day-ev-row.sel{background:#f0ede8;border-color:var(--ink);}
-.day-ev-check{width:15px;height:15px;border:1px solid var(--border2);border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;background:var(--surface);}
-.day-ev-check.on{background:var(--ink);border-color:var(--ink);color:#fff;}
-.day-sb-ft{padding:8px;border-top:1px solid var(--border);flex-shrink:0;}
+.day-ev-row.sel{background:rgba(139,92,246,0.1);border-color:var(--blue);}
+.day-ev-check{width:17px;height:17px;border:1px solid var(--border2);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;background:rgba(0,0,0,0.2);}
+.day-ev-check.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.day-sb-ft{padding:10px;border-top:1px solid var(--border);flex-shrink:0;}
 
 /* ── Grades ─── */
-.class-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;cursor:pointer;transition:all 0.12s;position:relative;overflow:hidden;}
+.class-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
 .cc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
 .cc.A::before,.cc.Ap::before{background:var(--green);}
 .cc.B::before{background:var(--blue);}
 .cc.C::before{background:var(--orange);}
 .cc.D::before,.cc.F::before{background:var(--red);}
-.cc:hover{box-shadow:0 2px 12px rgba(0,0,0,0.07);border-color:var(--border2);}
-.cc-code{font-family:var(--ff-m);font-size:9px;letter-spacing:1px;color:var(--ink3);margin-bottom:3px;}
-.cc-name{font-size:13px;font-weight:600;margin-bottom:10px;line-height:1.3;}
-.cc-letter{font-family:var(--ff-d);font-size:40px;font-weight:900;letter-spacing:-1px;line-height:1;}
-.cc-pct{font-size:13px;color:var(--ink2);margin-top:2px;}
-.cc-gp{font-family:var(--ff-m);font-size:9px;color:var(--ink3);margin-top:1px;}
+.cc:hover{border-color:var(--border2);transform:translateY(-1px);}
+.cc-code{font-family:var(--ff-m);font-size:10px;letter-spacing:1px;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;}
+.cc-name{font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.3;color:var(--ink);}
+.cc-letter{font-family:var(--ff-d);font-size:44px;font-weight:900;letter-spacing:-1px;line-height:1;}
+.cc-pct{font-size:14px;color:var(--ink2);margin-top:3px;font-weight:600;}
+.cc-gp{font-family:var(--ff-m);font-size:10px;color:var(--ink3);margin-top:2px;}
 
 /* Grade detail */
-.gd-top{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px;display:flex;gap:20px;align-items:center;}
-.gd-letter{font-family:var(--ff-d);font-size:80px;font-weight:900;letter-spacing:-2px;line-height:1;flex-shrink:0;}
-.gd-nm{font-family:var(--ff-d);font-size:22px;font-weight:700;margin-bottom:3px;}
-.gd-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:3px;}
-.gd-n{flex:1;font-size:13px;font-weight:500;}
-.gd-d{font-family:var(--ff-m);font-size:10px;color:var(--ink3);}
-.gd-s{font-family:var(--ff-m);font-size:12px;font-weight:500;}
-.gd-pct{font-size:11px;color:var(--ink3);width:38px;text-align:right;}
-.sec-label{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:10px 0 5px;border-bottom:1px solid var(--border);margin-bottom:5px;}
+.gd-top{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:16px;display:flex;gap:24px;align-items:center;}
+.gd-letter{font-family:var(--ff-d);font-size:88px;font-weight:900;letter-spacing:-2px;line-height:1;flex-shrink:0;}
+.gd-nm{font-family:var(--ff-d);font-size:28px;font-weight:700;margin-bottom:4px;}
+.gd-row{display:flex;align-items:center;gap:14px;padding:12px 16px;background:rgba(0,0,0,0.18);border:1px solid var(--border);border-radius:10px;margin-bottom:4px;}
+.gd-n{flex:1;font-size:14px;font-weight:500;color:var(--ink);}
+.gd-d{font-family:var(--ff-m);font-size:11px;color:var(--ink3);}
+.gd-s{font-family:var(--ff-m);font-size:12px;font-weight:600;}
+.gd-pct{font-size:12px;color:var(--ink3);width:42px;text-align:right;font-weight:600;}
+.sec-label{font-family:var(--ff-m);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);padding:14px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;}
 
 /* ── GPA ─── */
-.gpa-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;}
-.gpa-lbl{font-family:var(--ff-m);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;}
-.gpa-num{font-family:var(--ff-d);font-size:58px;font-weight:900;letter-spacing:-2px;line-height:1;}
-.gpa-sub{font-size:12px;color:var(--ink3);margin-top:5px;}
-.drag-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fdf0f0;border-radius:var(--r);margin-bottom:4px;border-left:3px solid var(--red);}
-.cls-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:4px;}
-.what-result{background:var(--ink);color:#fff;border-radius:var(--r);padding:22px 24px;margin-bottom:14px;text-align:center;}
-.wr-lbl{font-family:var(--ff-m);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#444;margin-bottom:4px;}
-.wr-num{font-family:var(--ff-d);font-size:72px;font-weight:900;letter-spacing:-3px;line-height:1;color:#fff;}
-.wr-sub{font-size:12px;color:#555;margin-top:6px;}
+.gpa-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;}
+.gpa-lbl{font-family:var(--ff-m);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;}
+.gpa-num{font-family:var(--ff-d);font-size:64px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--ink);}
+.gpa-sub{font-size:13px;color:var(--ink3);margin-top:6px;}
+.drag-row{display:flex;align-items:center;gap:12px;padding:11px 14px;background:rgba(239,68,68,0.08);border-radius:10px;margin-bottom:5px;border-left:3px solid var(--red);}
+.cls-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:5px;}
+.what-result{background:var(--blue);color:#fff;border-radius:14px;padding:28px;margin-bottom:16px;text-align:center;}
+.wr-lbl{font-family:var(--ff-m);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:6px;}
+.wr-num{font-family:var(--ff-d);font-size:80px;font-weight:900;letter-spacing:-3px;line-height:1;color:#fff;}
+.wr-sub{font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:500;}
 
 /* ── Screen Time ─── */
-.opal{background:var(--ink);border-radius:8px;padding:24px;position:relative;overflow:hidden;margin-bottom:14px;}
-.opal::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,0.02);border-radius:50%;}
-.opal-idle{background:var(--surface);border:1px solid var(--border);}
-.opal-status{font-family:var(--ff-m);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#333;margin-bottom:5px;}
-.opal-idle .opal-status{color:var(--ink3);}
-.opal-title{font-family:var(--ff-d);font-size:30px;font-weight:900;letter-spacing:-0.5px;color:#fff;margin-bottom:3px;}
-.opal-idle .opal-title{color:var(--ink2);}
-.opal-time{font-family:var(--ff-m);font-size:13px;color:#444;margin-bottom:18px;}
-.opal-idle .opal-time{color:var(--ink3);}
-.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
-.app-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px;text-align:center;cursor:pointer;transition:all 0.12s;user-select:none;}
-.app-tile.on{background:var(--ink);border-color:var(--ink);}
+.opal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;margin-bottom:20px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+.opal-title{font-family:var(--ff-d);font-size:44px;font-weight:900;letter-spacing:-1px;color:var(--ink);margin-bottom:6px;}
+.opal-time{font-family:var(--ff-m);font-size:14px;color:var(--ink2);margin-bottom:22px;}
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.app-tile{background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:11px;padding:14px;text-align:center;cursor:pointer;transition:all 0.15s;user-select:none;}
+.app-tile.on{background:var(--blue);border-color:var(--blue);}
 .app-tile:hover:not(.on){border-color:var(--border2);}
-.app-icon{font-size:20px;margin-bottom:3px;}
-.app-nm{font-size:10px;font-family:var(--ff-m);color:var(--ink3);}
-.app-tile.on .app-nm{color:#555;}
-.dur-btn{padding:10px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);text-align:center;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.12s;}
-.dur-btn.on{background:var(--ink);border-color:var(--ink);color:#fff;}
-.pomo-opt{padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all 0.12s;margin-bottom:8px;}
-.pomo-opt.on{background:var(--ink);border-color:var(--ink);color:#fff;}
-.pomo-opt-t{font-size:13px;font-weight:600;}
-.pomo-opt-s{font-size:11px;color:var(--ink3);margin-top:2px;}
-.pomo-opt.on .pomo-opt-s{color:#666;}
+.app-icon{font-size:26px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;}
+.app-nm{font-size:11px;font-family:var(--ff-m);color:var(--ink3);font-weight:500;}
+.app-tile.on .app-nm{color:rgba(255,255,255,0.8);}
+.dur-btn{padding:11px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;}
+.dur-btn.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.pomo-opt{padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:11px;cursor:pointer;transition:all 0.15s;margin-bottom:8px;}
+.pomo-opt.on{background:rgba(139,92,246,0.1);border-color:var(--blue);}
+.pomo-opt-t{font-size:14px;font-weight:600;color:var(--ink);}
+.pomo-opt-s{font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;}
 
 /* ── Importer ─── */
-.dz{border:2px dashed var(--border2);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:all 0.15s;}
-.dz:hover{border-color:var(--ink);background:var(--surface2);}
-.dz.drag{border-color:var(--ink);background:var(--surface2);}
-.imp-tab{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:3px;margin-bottom:18px;gap:3px;}
-.imp-t{flex:1;padding:8px;border-radius:4px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink3);transition:all 0.12s;display:flex;align-items:center;justify-content:center;gap:5px;}
-.imp-t svg{width:12px;height:12px;}
-.imp-t.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.08);}
-.ev-extracted{padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;display:flex;align-items:center;gap:10px;}
-.ee-check{width:18px;height:18px;border:1px solid var(--border2);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;background:var(--surface);}
-.ee-check.checked{background:var(--ink);border-color:var(--ink);color:#fff;}
-.ai-thinking{display:flex;align-items:center;gap:10px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);margin-top:10px;}
-.ai-t{font-size:13px;color:var(--ink2);}
-.ai-sub{font-size:11px;color:var(--ink3);margin-top:1px;font-family:var(--ff-m);}
+.dz{border:2px dashed var(--border2);border-radius:14px;padding:44px 32px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(0,0,0,0.1);}
+.dz:hover{border-color:var(--blue);background:rgba(139,92,246,0.05);}
+.imp-tab{display:flex;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:11px;padding:3px;margin-bottom:20px;gap:3px;}
+.imp-t{flex:1;padding:9px;border-radius:8px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink3);transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.imp-t svg{width:13px;height:13px;}
+.imp-t.on{background:var(--surface);color:var(--ink);}
+.ev-extracted{padding:12px 14px;background:rgba(0,0,0,0.18);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.ee-check{width:19px;height:19px;border:1px solid var(--border2);border-radius:5px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;background:rgba(0,0,0,0.2);}
+.ee-check.checked{background:var(--blue);border-color:var(--blue);color:#fff;}
+.ai-thinking{display:flex;align-items:center;gap:12px;padding:16px 20px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:10px;margin-top:12px;}
+.ai-t{font-size:14px;font-weight:600;color:var(--blue);}
+.ai-sub{font-size:12px;color:var(--ink3);margin-top:2px;font-family:var(--ff-m);}
+
+/* ── Page header ─── */
+.ph{margin-bottom:24px;}
+.ph-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;}
+.ph-title{font-family:var(--ff-d);font-size:28px;font-weight:700;letter-spacing:-0.5px;line-height:1.1;color:var(--ink);}
+
+/* ── Pulsating danger border ─── */
+@keyframes pulse-danger {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+.danger-pulse {
+  border:1px solid #EF4444 !important;
+  animation: pulse-danger 2s infinite;
+}
+
+/* ── GPA Glassmorphism cards ─── */
+.gpa-card {
+  background: rgba(26,26,42,0.7) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+}
+
+/* ── Grade card glow bars ─── */
+.cc .grade-bar-track { height:6px; background:rgba(255,255,255,0.08); border-radius:4px; margin-top:12px; overflow:visible; }
+.cc .grade-bar-fill  { height:100%; border-radius:4px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.cc.A  .grade-bar-fill, .cc.Ap .grade-bar-fill { background:linear-gradient(90deg,#4ade80,#22c55e); box-shadow:0 0 8px rgba(74,222,128,0.6); }
+.cc.B  .grade-bar-fill { background:linear-gradient(90deg,#8b5cf6,#7c3aed); box-shadow:0 0 8px rgba(139,92,246,0.6); }
+.cc.C  .grade-bar-fill { background:linear-gradient(90deg,#f97316,#ea580c); box-shadow:0 0 8px rgba(249,115,22,0.6); }
+.cc.D  .grade-bar-fill, .cc.F .grade-bar-fill { background:linear-gradient(90deg,#ef4444,#dc2626); box-shadow:0 0 8px rgba(239,68,68,0.6); }
+
+/* ── Sidebar hover left indicator ─── */
+.sb-item { position: relative; }
+.sb-item::before {
+  content:''; position:absolute; left:-10px; top:50%; transform:translateY(-50%);
+  width:2px; height:0; background:var(--blue); border-radius:1px;
+  transition: height 0.2s ease;
+}
+.sb-item:hover::before { height:60%; }
+.sb-item.on::before   { height:70%; }
+
+/* ── Pill tag (top-right on grade cards) ─── */
+.cc-pill {
+  position: absolute; top:12px; right:12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px; padding: 3px 9px;
+  font-size: 10px; font-weight: 700;
+  font-family: var(--ff-m); letter-spacing:0.5px;
+  backdrop-filter: blur(4px);
+  color: var(--ink2);
+}
+.cc { position: relative; }
+
+/* ── Stat cards (flat dark) ─── */
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+.stat-card .sc-label {
+  font-family: var(--ff-m); font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 16px;
+}
+.stat-card .sc-value {
+  font-family: var(--ff-d); font-size: 32px; font-weight: 800;
+  letter-spacing: -0.5px; color: #fff; line-height: 1;
+}
+.stat-card .sc-accent {
+  width: 20px; height: 2px; border-radius: 1px; margin-top: 14px;
+  background: var(--ink3);
+}
+
+/* ── Focus score badge (pill) ─── */
+.focus-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 6px 18px 6px 6px; 
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  transition: transform 0.2s;
+}
+.focus-badge:hover { transform: translateY(-1px); border-color: var(--border2); }
+.focus-badge .fb-left {
+  width: 32px; height: 32px; background: rgba(255,255,255,0.05); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-d); font-weight: 700; font-size: 14px; color: #fff;
+}
+.focus-badge .fb-right {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
+}
+.focus-badge .fb-label {
+  font-family: var(--ff-m); font-size: 8px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink3); line-height: 1;
+}
+.focus-badge .fb-status {
+  font-family: var(--ff-s); font-size: 11px; font-weight: 600; color: var(--green); line-height: 1;
+}
+
+/* ── Insight card (flat) ─── */
+.insight-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.insight-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 24px; cursor: pointer; transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+.insight-row:last-child { border-bottom: none; }
+.insight-row:hover { background: rgba(255,255,255,0.02); }
+.insight-icon {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface3); display: flex;
+  align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; color: #fff;
+}
+.insight-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.insight-sub   { font-size: 12px; color: var(--ink3); }
+.insight-arrow { color: var(--ink3); font-size: 18px; flex-shrink: 0; margin-left: auto; }
+
+/* ── Section heading ─── */
+.sec-head {
+  font-size: 16px; font-weight: 700; color: #fff;
+  margin-bottom: 16px; letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-head-right {
+  margin-left: auto; font-size: 12px; color: var(--ink3);
+  font-weight: 500; cursor: pointer; letter-spacing: 0.3px;
+}
+.sec-head-right:hover { color: #fff; }
+
+/* ── Up Next list ─── */
+.un-row {
+  padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.un-row:last-child { border-bottom: none; }
+.un-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.un-name { flex: 1; font-size: 14px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.un-date { font-family: var(--ff-m); font-size: 11px; color: var(--ink3); flex-shrink: 0; }
+
+/* ── Attention card ─── */
+.att-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.att-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 13px; border-radius: 10px;
+  background: rgba(239,68,68,0.07); margin-bottom: 8px;
+  border: 1px solid rgba(239,68,68,0.25);
+  animation: pulse-danger 2.4s ease infinite;
+  box-shadow: 0 0 0 0 rgba(239,68,68,0.3);
+}
+.att-item:last-child { margin-bottom: 0; }
+@keyframes att-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.2), 0 0 8px rgba(239,68,68,0.1); }
+  50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.05), 0 0 16px rgba(239,68,68,0.2); }
+}
+.att-item { animation: att-glow 2.4s ease infinite; }
+.att-ok {
+  padding: 16px; text-align: center;
+}
+
+/* ── Overview mini bar ─── */
+.ov-bar {
+  display: flex; gap: 2px; height: 6px; border-radius: 4px;
+  overflow: hidden; margin-bottom: 8px;
+}
 `;
 
 /* ── Data ─────────────────────────────────────────────────── */
@@ -330,10 +568,18 @@ const EVENTS_INIT = [
 ];
 
 const APPS = [
-  {name:"Instagram",icon:"📸"},{name:"TikTok",icon:"🎵"},{name:"YouTube",icon:"▶️"},
-  {name:"Twitter",icon:"🐦"},{name:"Snapchat",icon:"👻"},{name:"Discord",icon:"💬"},
-  {name:"Reddit",icon:"🤖"},{name:"Netflix",icon:"🎬"},{name:"Twitch",icon:"🎮"},
-  {name:"BeReal",icon:"📷"},{name:"Pinterest",icon:"📌"},{name:"Spotify",icon:"🎧"},
+  {name:"Instagram",icon:<img src="https://cdn.simpleicons.org/instagram/white" width="22" height="22" alt="Instagram" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"TikTok",icon:<img src="https://cdn.simpleicons.org/tiktok/white" width="22" height="22" alt="TikTok" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"YouTube",icon:<img src="https://cdn.simpleicons.org/youtube/white" width="22" height="22" alt="YouTube" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"X",icon:<img src="https://cdn.simpleicons.org/x/white" width="22" height="22" alt="X" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Snapchat",icon:<img src="https://cdn.simpleicons.org/snapchat/white" width="22" height="22" alt="Snapchat" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Discord",icon:<img src="https://cdn.simpleicons.org/discord/white" width="22" height="22" alt="Discord" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Reddit",icon:<img src="https://cdn.simpleicons.org/reddit/white" width="22" height="22" alt="Reddit" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Netflix",icon:<img src="https://cdn.simpleicons.org/netflix/white" width="22" height="22" alt="Netflix" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Twitch",icon:<img src="https://cdn.simpleicons.org/twitch/white" width="22" height="22" alt="Twitch" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"BeReal",icon:<img src="https://cdn.simpleicons.org/bereal/white" width="22" height="22" alt="BeReal" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Pinterest",icon:<img src="https://cdn.simpleicons.org/pinterest/white" width="22" height="22" alt="Pinterest" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
+  {name:"Spotify",icon:<img src="https://cdn.simpleicons.org/spotify/white" width="22" height="22" alt="Spotify" style={{opacity:0.9, filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.3))"}}/>},
 ];
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -360,73 +606,232 @@ const calcU = cls => {
 };
 
 /* ── HOME ────────────────────────────────────────────────── */
-function HomePage({ events }) {
-  const today = new Date(2026,1,23);
-  const ds = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  const ms = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  const upcoming = [...events].filter(e=>new Date(e.date)>=today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,6);
-  const blocked = [...events].filter(e=>e.blockScreen && new Date(e.date)>=today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,4);
+function HomePage({ events, classes, syncStatus }) {
+  const today = new Date();
+  const hour  = today.getHours();
+  const greeting = hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
+  const name  = "Joshua";
+
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  const upcoming = [...events].filter(e => e.date >= todayStr)
+    .sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,6);
+
+  let displayEvents = upcoming;
+  let isGCConnected = false;
+  let isNotionConnected = false;
+  try {
+    const ints = JSON.parse(localStorage.getItem('integrations'));
+    isGCConnected = ints?.gcal === true;
+    isNotionConnected = ints?.notion === true;
+  } catch {}
+
+  if (upcoming.length === 0 && isGCConnected) {
+    displayEvents = [
+      { id: "mock1", name: "AP Chem Study Session", date: "4:00 PM", priority: "high" },
+      { id: "mock2", name: "Calc BC Group Project", date: "Tomorrow", priority: "med" },
+      { id: "mock3", name: "Piano Lesson", date: "Wed, 5:30 PM", priority: "med" }
+    ];
+  }
+
+  const wgpa      = classes && classes.length > 0 ? calcW(classes) : null;
+  const ugpa      = classes && classes.length > 0 ? calcU(classes) : null;
+  const attention = classes ? classes.filter(c => c.pct < 80)           : [];
+  const aGrades   = classes ? classes.filter(c => c.pct >= 90).length   : 0;
+  const bGrades   = classes ? classes.filter(c => c.pct >= 80 && c.pct < 90).length : 0;
+  const belowB    = classes ? classes.filter(c => c.pct < 80).length    : 0;
+
+  const pDot = p => p==="test"?"var(--blue)":p==="high"?"var(--red)":p==="med"?"var(--orange)":"var(--green)";
 
   return (
-    <div className="page fu">
-      <div style={{marginBottom:26}}>
-        <div style={{fontFamily:"var(--ff-m)",fontSize:10,letterSpacing:3,textTransform:"uppercase",color:"var(--ink3)",marginBottom:5}}>
-          {ds[today.getDay()]} · {ms[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
+    <div className="page fu" style={{maxWidth:1400, width:"100%", margin:"auto", padding:60}}>
+
+      {/* ── Header row ── */}
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:40}}>
+        <div>
+          <div style={{fontSize:11,color:"var(--ink3)",marginBottom:5,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}}>{greeting}</div>
+          <div style={{fontSize:40,fontWeight:900,letterSpacing:"-1.5px",fontFamily:"var(--ff-d)",lineHeight:1,color:"#fff"}}>{name}</div>
         </div>
-        <div style={{fontFamily:"var(--ff-d)",fontSize:38,fontWeight:900,letterSpacing:"-1.5px",lineHeight:1.05,marginBottom:2}}>
-          Good afternoon,<br/><em>Alex.</em>
+        <div className="focus-badge">
+          <div className="fb-left">33</div>
+          <div className="fb-right">
+            <div className="fb-label">Focus Score</div>
+            <div className="fb-status">Needs Work</div>
+          </div>
         </div>
       </div>
 
-      <div className="g2" style={{gap:20,alignItems:"start"}}>
-        <div>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>Upcoming Assignments & Tests</div>
-          {upcoming.map((e,i)=>(
-            <div key={e.id} className={`ar bg-${e.priority}`} style={{animationDelay:`${i*0.04}s`}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div className="an">{e.name}</div>
-                <div className="am">{e.date}{e.blockScreen?" · 🔒":""}</div>
-              </div>
-              <span className={`tag t-${e.priority}`}>{e.priority==="test"?"TEST":e.priority.toUpperCase()}</span>
+      {/* ── Stat cards ── */}
+      <div className="g3" style={{marginBottom:40}}>
+        {[
+          {label:"WEIGHTED GPA",  value: wgpa},
+          {label:"UNWEIGHTED",    value: ugpa},
+          {label:"PERIOD",        value: "Q3"},
+        ].map(s => (
+          <div key={s.label} className="stat-card" style={{padding: "24px", height: "100%", display: "flex", flexDirection: "column"}}>
+            <div className="sc-label" style={{marginBottom: 16}}>{s.label}</div>
+            <div className="sc-value" style={{marginTop: "auto"}}>
+              {s.value || (
+                <div style={{display: "flex", flexDirection: "column", gap: 6, paddingTop: 4}}>
+                  <div style={{width: 24, height: 2, background: "#fff"}} />
+                  <div style={{width: 24, height: 2, background: "#fff"}} />
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-        <div>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>Upcoming Focus Blocks</div>
-          {blocked.length===0 ? (
-            <div style={{padding:"16px",textAlign:"center",color:"var(--ink3)",fontSize:13,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)"}}>No blocked sessions scheduled</div>
-          ) : blocked.map((s,i)=>(
-            <div key={s.id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"10px 13px",marginBottom:5,display:"flex",alignItems:"center",gap:10}}>
-              <Lock size={13} style={{color:"var(--ink3)",flexShrink:0}}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600}}>{s.name}</div>
-                <div style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>{s.date}</div>
-              </div>
-              <span className={`tag t-${s.priority}`}>{s.priority.toUpperCase()}</span>
-            </div>
-          ))}
+          </div>
+        ))}
+      </div>
 
-          <div style={{marginTop:20}}>
-            <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>At a Glance</div>
-            <div className="g2" style={{gap:8}}>
-              {[["3.72","Weighted GPA"],["3.25","Unweighted GPA"],["6","Classes"],["5","Due This Week"]].map(([v,l])=>(
-                <div key={l} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"12px 14px"}}>
-                  <div style={{fontFamily:"var(--ff-d)",fontSize:26,fontWeight:900,letterSpacing:"-1px"}}>{v}</div>
-                  <div style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",textTransform:"uppercase",letterSpacing:1,marginTop:2}}>{l}</div>
+      {/* ── Two-column grid ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:28,marginBottom:40,alignItems:"stretch"}}>
+
+        {/* LEFT — Up Next & Notion */}
+        <div style={{display:"flex",flexDirection:"column",gap:40}}>
+          <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+            <div className="sec-head">
+              <Calendar size={18} strokeWidth={2.5} />
+              Up Next
+              <span className="sec-head-right">See Calendar</span>
+            </div>
+            <div className="insight-card" style={{flex: 1, display: "flex", flexDirection: "column"}}>
+              {displayEvents.length === 0 ? (
+                <div style={{flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 180}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--ink3)"}}>All caught up!</div>
+                </div>
+              ) : displayEvents.map((e,i) => (
+                <div key={e.id} className="un-row" style={{borderBottom:"1px solid var(--border)"}}>
+                  <div className="un-dot" style={{background:pDot(e.priority)}}/>
+                  <div className="un-name">{e.name}</div>
+                  <div className="un-date">{e.date}</div>
                 </div>
               ))}
             </div>
           </div>
+
+          {isNotionConnected && (
+            <div>
+              <div className="sec-head">
+                <Layers size={18} strokeWidth={2.5} />
+                Notion Workspace
+              </div>
+              <div className="insight-card">
+                {[
+                  { title: "AP Chem Unit 5 Readings", tag: "High Yield" },
+                  { title: "Calculus Limits Cheat Sheet", tag: "Reference" },
+                  { title: "English Essay Outline", tag: "Draft" }
+                ].map((note, i) => (
+                  <div key={i} className="un-row" style={{borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+                    <div style={{width: 32, height: 32, background: "rgba(255,255,255,0.05)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0}}>
+                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div className="un-name" style={{fontSize: 13, fontWeight: 600, color: "#fff", marginLeft: 8}}>{note.title}</div>
+                    <div className="tag t-reg" style={{background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.8)", fontSize: 9, letterSpacing: 0.5}}>{note.tag}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — Attention + Grade Overview stacked */}
+        <div style={{display:"flex",flexDirection:"column",gap:40}}>
+
+          {/* Attention */}
+          <div>
+            <div className="sec-head">
+              <TrendingDown size={18} strokeWidth={2.5} color="#EF4444" />
+              Attention
+            </div>
+            <div className="insight-card">
+              {attention.length === 0 ? (
+                  <div style={{padding:"40px 20px",textAlign:"center"}}>
+                    <TrendingUp size={20} strokeWidth={2.5} color="var(--green)" style={{margin:"0 auto 8px",display:"block"}} />
+                    <div style={{fontSize:12,fontWeight:500,color:"var(--ink3)"}}>All your classes are in great shape.</div>
+                  </div>
+              ) : attention.map(c => (
+                <div key={c.id} className="att-item" style={{margin:"12px", background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.15)", borderRadius:"8px"}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <div style={{flex:1,fontSize:12,fontWeight:600,color:"#fff"}}>{c.name}</div>
+                  <div style={{fontFamily:"var(--ff-m)",fontSize:11,fontWeight:700,color:"#EF4444",background:"rgba(239,68,68,0.12)",padding:"2px 7px",borderRadius:5}}>{c.pct}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Grade Overview */}
+          <div>
+            <div className="sec-head" style={{marginBottom: 12}}>
+              Overview
+            </div>
+            <div style={{height: 48, borderRadius: 24, background: "var(--surface2)", border: "1px solid var(--border)", width: "100%"}}>
+              {/* Empty Pill as defined in mockup */}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* ── Smart Nudges ── */}
+      <div style={{marginBottom:40, width: "100%"}}>
+        <div className="sec-head">
+          <Lightbulb size={18} strokeWidth={2.5} />
+          Smart Nudges
+        </div>
+        <div style={{display: "flex", flexDirection: "column", gap: 12}}>
+          <div className="insight-card">
+            <div className="insight-row" style={{borderBottom: "none"}}>
+              <div className="insight-icon">
+                <Lightbulb size={16} strokeWidth={2.5} color="var(--ink2)" />
+              </div>
+              <div style={{flex:1}}>
+                <div className="insight-title">Focus Time Running Low</div>
+                <div className="insight-sub">You've only logged 0 min this week (0% of your 600 min goal). Start a focus session to get back on track!</div>
+              </div>
+              <div className="insight-arrow">›</div>
+            </div>
+          </div>
+          <div className="insight-card">
+            <div className="insight-row" style={{borderBottom: "none"}}>
+              <div className="insight-icon">
+                <Lightbulb size={16} strokeWidth={2.5} color="var(--ink2)" />
+              </div>
+              <div style={{flex:1}}>
+                <div className="insight-title">Weekly Review Time</div>
+                <div className="insight-sub">It's Sunday! Take a few minutes to review your progress this week and plan for the next one.</div>
+              </div>
+              <div className="insight-arrow">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Grade Trends ── */}
+      <div style={{marginBottom:40, width: "100%"}}>
+        <div className="sec-head">
+          <TrendingUp size={18} strokeWidth={2.5} />
+          Grade Trends
+        </div>
+        <div className="insight-card">
+          <div className="insight-row" style={{borderBottom:"none", cursor:"default"}}>
+            <div style={{flex:1}}>
+              <div className="insight-title" style={{fontSize: 15, marginBottom: 4}}>Grade Trends</div>
+              <div className="insight-sub" style={{color: "var(--ink3)"}}>
+                {syncStatus === "done" ? "Grade history loaded from StudentVUE." : "No grade history yet. Sync your grades to start tracking trends."}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
 
 /* ── CALENDAR ────────────────────────────────────────────── */
 function CalendarPage({ events, setEvents }) {
-  const [month, setMonth] = useState(1);
-  const [year] = useState(2026);
+  const _now = new Date();
+  const [month, setMonth] = useState(_now.getMonth());
+  const [year, setYear] = useState(_now.getFullYear());
   const [selDay, setSelDay] = useState(null); // {d, dateStr}
   const [selEvIds, setSelEvIds] = useState(new Set());
   const [showAdd, setShowAdd] = useState(false);
@@ -475,124 +880,137 @@ function CalendarPage({ events, setEvents }) {
 
   return (
     <div className="cal-page fu">
-      {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:8,flexShrink:0}}>
-        <div>
-          <div style={{fontFamily:"var(--ff-d)",fontSize:24,fontWeight:700,letterSpacing:"-0.5px",lineHeight:1.1}}>Calendar</div>
-          <div style={{fontFamily:"var(--ff-m)",fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink3)",marginTop:3}}>{MN[month]} {year} · {events.length} events</div>
-        </div>
-        <button className="btn btn-dark" onClick={()=>setShowAdd(true)}><Plus size={13}/>Add Event</button>
-      </div>
-
-      {/* Key */}
-      <div className="cal-key">
-        <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>KEY</span>
-        {[["high","Urgent","#fde0e0","var(--red)"],["med","Normal","#fde8d8","var(--orange)"],["low","Study","#e0f3e8","var(--green)"],["test","Test","#dde8f8","var(--blue)"]].map(([k,l,bg,c])=>(
-          <div key={k} className="ck-item"><div className="ck-swatch" style={{background:bg,border:`1px solid ${c}`}}/>{l}</div>
-        ))}
-        <div className="ck-item"><Lock size={9} style={{color:"var(--ink3)"}}/> Blocked</div>
-      </div>
-
-      {/* Month nav */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-        <button className="btn btn-out btn-sm" onClick={()=>{setMonth(m=>Math.max(0,m-1));setSelDay(null);setSelEvIds(new Set());}}><ChevronLeft size={12}/></button>
-        <div style={{fontFamily:"var(--ff-d)",fontSize:17,fontWeight:700,letterSpacing:"-0.3px",minWidth:140}}>{MN[month]} {year}</div>
-        <button className="btn btn-out btn-sm" onClick={()=>{setMonth(m=>Math.min(11,m+1));setSelDay(null);setSelEvIds(new Set());}}><ChevronRight size={12}/></button>
-      </div>
-
-      {/* Calendar + sidebar */}
-      <div className="cal-wrap">
-        <div className="cal-main">
-          <div className="cal-hd">
-            {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} className="cal-dow">{d}</div>)}
+      <div className="page-container">
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"24px 0 16px",flexShrink:0}}>
+          <div>
+            <div className="ph-title">Calendar</div>
+            <div style={{fontFamily:"var(--ff-m)",fontSize:10,letterSpacing:"1.5px",textTransform:"uppercase",color:"rgba(255,255,255,0.6)",marginTop:6}}>{MN[month]} {year} · {events.length} tasks</div>
           </div>
-          <div className="cal-grid">
-            {cells.map((c,i)=>{
-              const evts = getEvts(c.d);
-              const isToday = c.d===23&&month===1;
-              const isSel = selDay?.d===c.d;
-              const visible = evts.slice(0,3);
-              const overflow = evts.length-3;
-              return (
-                <div
-                  key={i}
-                  className={`cal-cell ${isToday?"today":""} ${c.other?"other":""} ${isSel&&!c.other?"selected":""}`}
-                  onClick={()=>{
-                    if(!c.d||c.other) return;
-                    setSelDay(isSel?null:{d:c.d,dateStr:dateStr(c.d)});
-                    setSelEvIds(new Set());
-                  }}
-                >
-                  {c.d && <div className="cal-num">{c.d}</div>}
-                  {visible.map(e=>(
-                    <div key={e.id} className={`cal-ev ${e.priority}`}>
-                      {e.blockScreen&&<Lock size={6}/>}
-                      <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{e.name}</span>
-                    </div>
-                  ))}
-                  {overflow>0 && <div className="cal-more">+{overflow}</div>}
-                </div>
-              );
-            })}
+          <div className="btn-row">
+            <button className="btn btn-out btn-sm"><Sparkles size={12}/>Auto-Schedule</button>
+            <button className="btn btn-dark btn-sm" onClick={()=>setShowAdd(true)}><Plus size={12}/>Add Event</button>
           </div>
         </div>
 
-        {/* Day sidebar */}
-        <div className="day-sb">
-          {!selDay ? (
-            <div className="day-sb-empty" style={{padding:"30px 14px"}}>
-              <div style={{fontSize:22,marginBottom:6}}>📅</div>
-              <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink4)"}}>Select a day</div>
-              <div style={{fontSize:11,color:"var(--ink4)",marginTop:4}}>Click any date to see its events</div>
+        {/* Key */}
+        <div className="cal-key" style={{background:"transparent", borderBottom:"1px solid var(--border)", padding:"12px 0"}}>
+          <span style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.5)"}}>KEY</span>
+          {[["high","Do First","rgba(239,68,68,0.1)","#ef4444"],["med","Schedule","rgba(249,115,22,0.1)","#f97316"],["low","Delegate","rgba(74,222,128,0.1)","#4ade80"],["test","Eliminate","rgba(139,92,246,0.1)","#8b5cf6"]].map(([k,l,bg,c])=>(
+            <div key={k} className="ck-item"><div className="ck-swatch" style={{background:bg,border:`1px solid ${c}`}}/>{l}</div>
+          ))}
+        </div>
+
+        {/* Month nav */}
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 0",flexShrink:0}}>
+          <button className="btn btn-ghost btn-sm" style={{padding:"6px 10px",border:"1px solid var(--border)", background:"rgba(255,255,255,0.03)"}} onClick={()=>{
+                  setMonth(m => { const nm = m === 0 ? 11 : m - 1; if (m === 0) setYear(y => y - 1); return nm; });
+                  setSelDay(null); setSelEvIds(new Set());
+                }}><ChevronLeft size={14}/></button>
+          <div style={{fontFamily:"var(--ff-d)",fontSize:18,fontWeight:800,letterSpacing:"-0.5px",minWidth:140,color:"var(--ink)",textAlign:"center"}}>{MN[month]} {year}</div>
+          <button className="btn btn-ghost btn-sm" style={{padding:"6px 10px",border:"1px solid var(--border)", background:"rgba(255,255,255,0.03)"}} onClick={()=>{
+                  setMonth(m => { const nm = m === 11 ? 0 : m + 1; if (m === 11) setYear(y => y + 1); return nm; });
+                  setSelDay(null); setSelEvIds(new Set());
+                }}><ChevronRight size={14}/></button>
+        </div>
+
+        {/* Calendar + sidebar */}
+        <div className="cal-wrap" style={{border:"1px solid var(--border)", borderRadius:14, overflow:"hidden", background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", marginBottom:32}}>
+          <div className="cal-main" style={{padding:0, display:"flex", flexDirection:"column"}}>
+            <div className="cal-hd" style={{background:"rgba(255,255,255,0.02)", borderBottom:"1px solid var(--border)"}}>
+              {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=><div key={d} className="cal-dow">{d}</div>)}
             </div>
-          ) : (
-            <>
-              <div className="day-sb-hd">
-                <div className="day-sb-date">
-                  {selDayObj && DAYS[selDayObj.getDay()]}<br/>
-                  {SHORT_MN[month]} {selDay.d}
-                </div>
-                <div className="day-sb-sub">{selDayEvts.length} event{selDayEvts.length!==1?"s":""}</div>
-              </div>
-              <div className="day-sb-body">
-                {selDayEvts.length===0 ? (
-                  <div className="day-sb-empty">
-                    <div style={{fontSize:18,marginBottom:4}}>✦</div>
-                    <div style={{fontSize:11,color:"var(--ink4)"}}>No events</div>
-                  </div>
-                ) : selDayEvts.map(e=>(
+            <div className="cal-grid" style={{background:"rgba(255,255,255,0.05)", flex:1}}>
+              {cells.map((c,i)=>{
+                const evts = getEvts(c.d);
+                const _today = new Date();
+                const isToday = c.d===_today.getDate() && month===_today.getMonth() && year===_today.getFullYear();
+                const isSel = selDay?.d===c.d;
+                const visible = evts.slice(0,3);
+                const overflow = evts.length-3;
+                return (
                   <div
-                    key={e.id}
-                    className={`day-ev-row ${selEvIds.has(e.id)?"sel":""}`}
-                    onClick={()=>toggleEvSel(e.id)}
+                    key={i}
+                    className={`cal-cell ${isToday?"today":""} ${c.other?"other":""} ${isSel&&!c.other?"selected":""}`}
+                    style={{minHeight:100}}
+                    onClick={()=>{
+                      if(!c.d||c.other) return;
+                      setSelDay(isSel?null:{d:c.d,dateStr:dateStr(c.d)});
+                      setSelEvIds(new Set());
+                    }}
                   >
-                    <div className={`day-ev-check ${selEvIds.has(e.id)?"on":""}`}>
-                      {selEvIds.has(e.id)&&"✓"}
+                    {c.d && <div className="cal-num">{c.d}</div>}
+                    {visible.map(e=>(
+                      <div key={e.id} className={`cal-ev ${e.priority}`}>
+                        {e.blockScreen&&<Lock size={6}/>}
+                        <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{e.name}</span>
+                      </div>
+                    ))}
+                    {overflow>0 && <div className="cal-more">+{overflow}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="day-sb" style={{background:"transparent", borderLeft:"1px solid var(--border)", width:240, minWidth:240}}>
+            {!selDay ? (
+              <div style={{padding:"48px 24px",textAlign:"center"}}>
+                <svg width="60" height="60" viewBox="0 0 80 80" fill="none" style={{display:"block",margin:"0 auto 16px", opacity:0.6}}>
+                  <circle cx="40" cy="40" r="30" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"/>
+                  <path d="M40 25v15l8 8" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <div style={{fontSize:18,fontWeight:800,fontFamily:"var(--ff-d)",color:"#fff",marginBottom:6}}>
+                  {new Date().toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'})}
+                </div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,0.5)", lineHeight:1.4}}>Select a date to view<br/>or add events.</div>
+              </div>
+            ) : (
+              <>
+                <div className="day-sb-hd" style={{background:"rgba(255,255,255,0.03)", padding:16, borderBottom:"1px solid var(--border)"}}>
+                  <div className="day-sb-date" style={{fontSize:16, fontWeight:700, color:"#fff"}}>{selDayObj && DAYS[selDayObj.getDay()]}, {SHORT_MN[month]} {selDay.d}</div>
+                  <div className="day-sb-sub" style={{color:"rgba(255,255,255,0.5)", fontSize:11, marginTop:4}}>{selDayEvts.length} event{selDayEvts.length!==1?"s":""}</div>
+                </div>
+                <div className="day-sb-body" style={{padding:12}}>
+                  {selDayEvts.length===0 ? (
+                    <div className="day-sb-empty" style={{padding:"40px 10px", textAlign:"center"}}>
+                      <div style={{fontSize:24,marginBottom:10, opacity:0.4}}>✨</div>
+                      <div style={{fontSize:12,color:"rgba(255,255,255,0.4)", fontWeight:500}}>Nothing planned yet</div>
                     </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:5,marginTop:3}}>
-                        <span style={{width:5,height:5,borderRadius:1,background:pColor(e.priority),flexShrink:0}}/>
-                        <span style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",textTransform:"uppercase",letterSpacing:0.5}}>{e.priority}</span>
-                        {e.blockScreen&&<Lock size={8} style={{color:"var(--ink3)"}}/>}
+                  ) : selDayEvts.map(e=>(
+                    <div
+                      key={e.id}
+                      className={`day-ev-row ${selEvIds.has(e.id)?"sel":""}`}
+                      style={{background:"rgba(255,255,255,0.03)", border:"1px solid var(--border)", marginBottom:8, padding:10, borderRadius:10, cursor:"pointer", display:"flex", alignItems:"center", gap:10}}
+                      onClick={()=>toggleEvSel(e.id)}
+                    >
+                      <div className={`day-ev-check ${selEvIds.has(e.id)?"on":""}`} style={{width:18, height:18, border:"1px solid var(--border2)", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11}}>
+                        {selEvIds.has(e.id)&&"✓"}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,lineHeight:1.3,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginTop:4}}>
+                          <span style={{width:5,height:5,borderRadius:1,background:pColor(e.priority),flexShrink:0}}/>
+                          <span style={{fontFamily:"var(--ff-m)",fontSize:9,color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:0.5}}>{e.priority}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              {selEvIds.size>0 && (
-                <div className="day-sb-ft">
-                  <button
-                    className="btn btn-red"
-                    style={{width:"100%",justifyContent:"center",fontSize:12}}
-                    onClick={removeSelected}
-                  >
-                    Remove {selEvIds.size} event{selEvIds.size!==1?"s":""}
-                  </button>
+                  ))}
                 </div>
-              )}
-            </>
-          )}
+                {selEvIds.size>0 && (
+                  <div className="day-sb-ft" style={{padding:12, borderTop:"1px solid var(--border)"}}>
+                    <button
+                      className="btn btn-red"
+                      style={{width:"100%",justifyContent:"center",fontSize:12, borderRadius:10, padding:"10px"}}
+                      onClick={removeSelected}
+                    >
+                      Remove {selEvIds.size} event{selEvIds.size!==1?"s":""}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -604,16 +1022,27 @@ function CalendarPage({ events, setEvents }) {
             <div className="fg"><label className="fl">Name</label><input className="fi" value={newEv.name} onChange={e=>setNewEv({...newEv,name:e.target.value})} placeholder="e.g. Chemistry Test"/></div>
             <div className="g2">
               <div className="fg"><label className="fl">Date</label><input type="date" className="fi" value={newEv.date} onChange={e=>setNewEv({...newEv,date:e.target.value})}/></div>
-              <div className="fg"><label className="fl">Priority</label><select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
-                <option value="high">High — Urgent</option><option value="med">Medium</option><option value="low">Low / Study</option><option value="test">Test / Quiz</option>
-              </select></div>
+              <div className="fg">
+                <label className="fl">Priority</label>
+                <select className="fs" value={newEv.priority} onChange={e=>setNewEv({...newEv,priority:e.target.value})}>
+                  <option value="test">Test / Exam</option>
+                  <option value="high">High Priority</option>
+                  <option value="med">Medium Priority</option>
+                  <option value="low">Low Priority</option>
+                </select>
+              </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <label className="tog"><input type="checkbox" checked={newEv.blockScreen} onChange={e=>setNewEv({...newEv,blockScreen:e.target.checked})}/><span className="tog-t"/></label>
-              <span style={{fontSize:13}}>Block screen time during this event</span>
-            </div>
-            <div className="btn-row">
-              <button className="btn btn-dark" style={{flex:1}} disabled={!newEv.name||!newEv.date} onClick={addEvent}>Add to Calendar</button>
+            <div className="btn-row" style={{marginTop:24}}>
+              <button
+                className="btn btn-dark"
+                style={{flex:1, justifyContent:"center"}}
+                onClick={()=>{
+                  if(!newEv.name || !newEv.date) return;
+                  setEvents([...events, { ...newEv, id: Date.now() }]);
+                  setShowAdd(false);
+                  setNewEv({ name:"", date: selDay?.iso || "", priority:"med" });
+                }}
+              >Add to Schedule</button>
               <button className="btn btn-out" onClick={()=>setShowAdd(false)}>Cancel</button>
             </div>
           </div>
@@ -623,14 +1052,12 @@ function CalendarPage({ events, setEvents }) {
   );
 }
 
-/* ── GRADES ──────────────────────────────────────────────── */
 function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDismiss, syncPeriod }) {
   const [sel, setSel] = useState(null);
   const cls = classes.find(c => c.id === sel);
 
   // ── Detail view ──────────────────────────────────────────
   if (cls) {
-    // Group assignments by their actual category string from StudentVUE
     const categoryGroups = {};
     for (const a of cls.assignments) {
       const key = a.category || a.type || "Other";
@@ -639,7 +1066,6 @@ function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDism
     }
     const categories = Object.keys(categoryGroups).sort();
 
-    // Compute per-category average
     const catAvg = (items) => {
       const scored = items.filter(a => a.score !== undefined && a.total > 0);
       if (!scored.length) return null;
@@ -650,85 +1076,90 @@ function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDism
 
     return (
       <div className="page fu">
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",color:"var(--ink3)",fontSize:12,fontFamily:"var(--ff-m)"}} onClick={()=>setSel(null)}>
-          <ChevronLeft size={13}/>Back to all classes
-        </div>
-
-        {/* Class header */}
-        <div className="gd-top">
-          <div className="gd-letter" style={{color:lColor(cls.letter)}}>{cls.letter}</div>
-          <div style={{flex:1}}>
-            <div className="gd-nm">{cls.name}</div>
-            <div style={{fontSize:13,color:"var(--ink2)",marginBottom:8}}>
-              {cls.pct}%{cls.teacher ? ` · ${cls.teacher}` : ""}{cls.room ? ` · Room ${cls.room}` : ""}
-            </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
-              <span className="tag t-reg">Weighted GP: {cls.wGP}</span>
-              <span className="tag t-reg">Unweighted GP: {cls.uGP}</span>
-              {cls.period && <span className="tag t-reg">Period {cls.period}</span>}
-              <span className="tag t-reg">{cls.assignments.length} assignments</span>
-            </div>
+        <div className="page-container">
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:20,cursor:"pointer",color:"rgba(255,255,255,0.6)",fontSize:12,fontFamily:"var(--ff-m)"}} onClick={()=>setSel(null)}>
+            <ChevronLeft size={13}/>Back to Gradebook
           </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--ff-d)",fontSize:52,fontWeight:900,letterSpacing:"-2px",color:lColor(cls.letter),lineHeight:1}}>{cls.pct}%</div>
-            <div className="pb" style={{width:110,marginLeft:"auto",marginTop:6,height:5}}>
-              <div className="pf" style={{width:`${cls.pct}%`,background:pColor(cls.pct)}}/>
-            </div>
-          </div>
-        </div>
 
-        {/* Assignments — no assignments state */}
-        {cls.assignments.length === 0 && (
-          <div style={{textAlign:"center",padding:"40px 32px",color:"var(--ink3)",fontSize:13,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--r)"}}>
-            No assignments recorded for this period yet.
-          </div>
-        )}
-
-        {/* Assignments grouped by real category */}
-        {categories.map(cat => {
-          const items = categoryGroups[cat];
-          const avg = catAvg(items);
-          return (
-            <div key={cat} style={{marginBottom:16}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0 5px",borderBottom:"1px solid var(--border)",marginBottom:6}}>
-                <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)"}}>{cat}</div>
-                {avg !== null && (
-                  <div style={{fontFamily:"var(--ff-m)",fontSize:10,color:pColor(avg),fontWeight:600}}>{avg.toFixed(1)}% avg</div>
-                )}
+          <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", padding:24, marginBottom:24}}>
+            <div className="gd-top" style={{display:"flex", alignItems:"center", gap:20}}>
+              <div className="gd-letter" style={{fontSize:52, fontWeight:900, fontFamily:"var(--ff-d)", color:lColor(cls.letter), lineHeight:1}}>{cls.letter}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:24, fontWeight:800, color:"#fff", fontFamily:"var(--ff-d)", marginBottom:4}}>{cls.name}</div>
+                <div style={{fontSize:14, color:"rgba(255,255,255,0.7)", marginBottom:10}}>
+                  {cls.pct}%{cls.teacher ? ` · ${cls.teacher}` : ""}{cls.room ? ` · Room ${cls.room}` : ""}
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <span className={`tag t-${cls.type==="AP"?"ap":cls.type==="HN"?"hn":"reg"}`}>{cls.type}</span>
+                  <span className="tag t-reg" style={{background:"rgba(255,255,255,0.05)", color:"#fff"}}>GPA: {cls.wGP}</span>
+                  {cls.period && <span className="tag t-reg" style={{background:"rgba(255,255,255,0.05)", color:"#fff"}}>Period {cls.period}</span>}
+                </div>
               </div>
-              {items.map((a, i) => {
-                const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
-                const apt    = hasPts ? (a.score / a.total) * 100 : null;
-                const isExc  = a.rawScore && /exc|excused/i.test(a.rawScore);
-                const isMiss = a.rawScore && /miss|incomplete|ng/i.test(a.rawScore);
-                return (
-                  <div key={i} className="gd-row" style={{borderLeft: apt !== null ? `3px solid ${pColor(apt)}` : "3px solid var(--border)"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div className="gd-n" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
-                      {a.notes && <div style={{fontSize:10,color:"var(--ink3)",marginTop:1,fontFamily:"var(--ff-m)"}}>{a.notes}</div>}
-                    </div>
-                    <div className="gd-d">{a.date}</div>
-                    {hasPts ? (
-                      <>
-                        <div className="gd-s" style={{color:pColor(apt),minWidth:52,textAlign:"right"}}>
-                          {Number.isInteger(a.score) ? a.score : a.score.toFixed(1)}/{Number.isInteger(a.total) ? a.total : a.total.toFixed(1)}
-                        </div>
-                        <div className="gd-pct" style={{minWidth:38,color:pColor(apt)}}>{Math.round(apt)}%</div>
-                      </>
-                    ) : isExc ? (
-                      <div className="gd-pct" style={{color:"var(--blue)",minWidth:52}}>Exc</div>
-                    ) : isMiss ? (
-                      <div className="gd-pct" style={{color:"var(--red)",minWidth:52}}>Missing</div>
-                    ) : (
-                      <div className="gd-pct" style={{color:"var(--ink4)",minWidth:52}}>Not graded</div>
-                    )}
-                  </div>
-                );
-              })}
+              <div style={{textAlign:"right"}}>
+                <div style={{fontFamily:"var(--ff-d)",fontSize:48,fontWeight:900,color:lColor(cls.letter),lineHeight:1}}>{cls.pct}%</div>
+                <div className="pb" style={{width:120, height:8, marginTop:10, background:"rgba(255,255,255,0.1)"}}>
+                  <div className="pf" style={{width:`${cls.pct}%`, background:pColor(cls.pct)}}/>
+                </div>
+              </div>
             </div>
-          );
-        })}
+          </div>
+
+          {cls.assignments.length === 0 && (
+            <div style={{textAlign:"center",padding:"60px 32px",color:"rgba(255,255,255,0.4)",background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)",border:"1px solid var(--border)",borderRadius:16}}>
+              No assignments recorded yet.
+            </div>
+          )}
+
+          {categories.map(cat => {
+            const items = categoryGroups[cat];
+            const avg = catAvg(items);
+            return (
+              <div key={cat} style={{marginBottom:32}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:12,borderBottom:"1px solid var(--border)",marginBottom:12}}>
+                  <div style={{fontFamily:"var(--ff-m)",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"rgba(255,255,255,0.4)"}}>{cat}</div>
+                  {avg !== null && (
+                    <div style={{fontFamily:"var(--ff-m)",fontSize:11,color:pColor(avg),fontWeight:700}}>{avg.toFixed(1)}% Average</div>
+                  )}
+                </div>
+                {items.map((a, i) => {
+                  const hasPts = a.score !== undefined && a.total !== undefined && a.total > 0;
+                  const apt    = hasPts ? (a.score / a.total) * 100 : null;
+                  const isExc  = a.rawScore && /exc|excused/i.test(a.rawScore);
+                  const isMiss = a.rawScore && /miss|incomplete|ng/i.test(a.rawScore);
+                  return (
+                    <div key={i} className="gd-row" style={{
+                      background:"rgba(255,255,255,0.02)", 
+                      border:"1px solid var(--border)", 
+                      marginBottom:8, 
+                      padding:12, 
+                      borderRadius:10, 
+                      display:"flex", 
+                      alignItems:"center", 
+                      gap:16,
+                      borderLeft: apt !== null ? `4px solid ${pColor(apt)}` : "4px solid var(--border)"
+                    }}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13, fontWeight:600, color:"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{a.name}</div>
+                        {a.notes && <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:2}}>{a.notes}</div>}
+                      </div>
+                      <div style={{fontSize:11, color:"rgba(255,255,255,0.3)", fontFamily:"var(--ff-m)"}}>{a.date}</div>
+                      {hasPts ? (
+                        <div style={{textAlign:"right", minWidth:80}}>
+                          <div style={{fontSize:13, color:"#fff", fontWeight:700}}>{a.score}/{a.total}</div>
+                          <div style={{fontSize:10, color:pColor(apt), fontWeight:600}}>{Math.round(apt)}%</div>
+                        </div>
+                      ) : (
+                        <div style={{fontSize:11, color:isExc?"var(--blue)":isMiss?"var(--red)":"rgba(255,255,255,0.3)", fontWeight:600, minWidth:80, textAlign:"right"}}>
+                          {isExc ? "Excused" : isMiss ? "Missing" : "Not Graded"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -736,62 +1167,78 @@ function GradesPage({ classes, syncStatus, syncError, lastSynced, onSync, onDism
   // ── Grid view ────────────────────────────────────────────
   return (
     <div className="page fu">
-      <div className="ph">
-        <div className="ph-row">
-          <div>
-            <div className="ph-title">Grades</div>
-            <div className="ph-sub">{syncStatus==="done" ? `${syncPeriod ? syncPeriod + " · " : ""}${classes.length} classes from StudentVUE` : `${classes.length} classes · click to expand`}</div>
-          </div>
-          <div className="btn-row">
-            {syncStatus==="done" && lastSynced && (
-              <span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>Updated {lastSynced.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>
-            )}
-            <button className={`btn ${syncStatus==="loading"?"btn-out":"btn-dark"} btn-sm`} onClick={onSync} disabled={syncStatus==="loading"}>
-              {syncStatus==="loading" ? <><Loader size={11} className="spin"/>Syncing…</> : <><Sparkles size={11}/>Sync StudentVUE</>}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {syncStatus==="error" && (
-        <div style={{background:"#fdf0f0",border:"1px solid #f0b8b8",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:600,color:"var(--red)",marginBottom:3}}>⚠ Sync failed</div>
-          <div style={{fontSize:12,color:"var(--red)"}}>{syncError}</div>
-          <button className="btn btn-out btn-sm" style={{marginTop:8}} onClick={onDismiss}>Dismiss</button>
-        </div>
-      )}
-      {syncStatus==="nocreds" && (
-        <div style={{background:"#fdf4ee",border:"1px solid #f0d0b0",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:600,color:"var(--orange)",marginBottom:3}}>StudentVUE credentials not set</div>
-          <div style={{fontSize:12,color:"var(--orange)"}}>Go to Settings (bottom of sidebar) to enter your StudentVUE username, password, and district URL.</div>
-        </div>
-      )}
-      {syncStatus==="done" && (
-        <div style={{background:"#eef7f2",border:"1px solid #b0dcc2",borderRadius:"var(--r)",padding:"10px 14px",marginBottom:14,fontSize:12,color:"var(--green)",fontWeight:500}}>
-          ✓ Grades synced from StudentVUE — {classes.length} classes loaded
-        </div>
-      )}
-
-      <div className="class-grid">
-        {classes.map(c=>(
-          <div key={c.id} className={`cc ${lClass(c.letter)}`} onClick={()=>setSel(c.id)}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-              <div><div className="cc-code">{c.code}</div><div className="cc-name">{c.name}</div></div>
-              <span className={`tag t-${c.type==="AP"?"ap":c.type==="HN"?"hn":"reg"}`}>{c.type}</span>
+      <div className="page-container">
+        <div className="ph" style={{padding:"24px 0 16px"}}>
+          <div className="ph-row" style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+            <div>
+              <div className="ph-title">Gradebook</div>
+              <div style={{fontFamily:"var(--ff-m)", fontSize:10, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.5)", marginTop:6}}>
+                {classes.length} active courses
+              </div>
             </div>
-            <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-              <div className="cc-letter" style={{color:lColor(c.letter)}}>{c.letter}</div>
-              <div><div className="cc-pct">{c.pct}%</div><div className="cc-gp">GP {c.wGP}W / {c.uGP}U</div></div>
+            <div className="btn-row">
+              <button className={`btn ${syncStatus==="loading"?"btn-out":"btn-dark"} btn-sm`} onClick={onSync} disabled={syncStatus==="loading"}>
+                {syncStatus==="loading" ? <><Loader size={12} className="spin"/>Syncing…</> : <><Sparkles size={12}/>Sync StudentVUE</>}
+              </button>
             </div>
-            <div className="pb" style={{marginTop:10}}><div className="pf" style={{width:`${c.pct}%`,background:pColor(c.pct)}}/></div>
-            {c.teacher && <div style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",marginTop:6}}>{c.teacher}</div>}
           </div>
-        ))}
+        </div>
+
+        {syncStatus==="error" && (
+          <div className="card" style={{background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)", padding:16, marginBottom:20, borderRadius:12}}>
+            <div style={{display:"flex", alignItems:"center", gap:10}}>
+              <AlertTriangle size={16} style={{color:"var(--red)"}}/>
+              <div style={{fontSize:13, fontWeight:600, color:"var(--red)"}}>Sync Error: {syncError}</div>
+            </div>
+            <button className="btn btn-out btn-sm" style={{marginTop:12}} onClick={onDismiss}>Dismiss Error</button>
+          </div>
+        )}
+
+        {syncStatus==="nocreds" && (
+          <div className="card" style={{background:"rgba(249,115,22,0.1)", border:"1px solid rgba(249,115,22,0.2)", padding:16, marginBottom:20, borderRadius:12}}>
+            <div style={{fontSize:13, fontWeight:600, color:"var(--orange)", marginBottom:4}}>StudentVUE connection missing</div>
+            <div style={{fontSize:12, color:"rgba(255,255,255,0.7)"}}>Please authenticate in your StudentVUE settings to load live grades.</div>
+          </div>
+        )}
+
+        <div className="class-grid" style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:28, paddingBottom:40}}>
+          {classes.map(c=>(
+            <div key={c.id} className="card" style={{
+              background:"rgba(26,26,42,0.4)", 
+              backdropFilter:"blur(12px)", 
+              border:"1px solid var(--border)", 
+              padding:20, 
+              borderRadius:16, 
+              cursor:"pointer",
+              transition:"transform 0.2s, background 0.2s"
+            }} onClick={()=>setSel(c.id)}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12}}>
+                <span className="tag" style={{background:"rgba(255,255,255,0.05)", color:"#fff", border:"1px solid var(--border)"}}>{c.type}</span>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:24, fontWeight:900, color:lColor(c.letter), fontFamily:"var(--ff-d)", lineHeight:1}}>{c.letter}</div>
+                  <div style={{fontSize:12, fontWeight:700, color:"#fff", marginTop:2}}>{c.pct}%</div>
+                </div>
+              </div>
+              
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:12, color:"rgba(255,255,255,0.4)", fontWeight:600, fontFamily:"var(--ff-m)", marginBottom:2}}>{c.period?`PERIOD ${c.period}`:c.code}</div>
+                <div style={{fontSize:16, fontWeight:800, color:"#fff", fontFamily:"var(--ff-d)", lineHeight:1.2}}>{c.name}</div>
+              </div>
+
+              <div className="pb" style={{height:6, background:"rgba(255,255,255,0.05)", marginBottom:10}}>
+                <div className="pf" style={{width:`${Math.min(c.pct,100)}%`, background:pColor(c.pct)}}/>
+              </div>
+
+              {c.teacher && (
+                <div style={{fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:500}}>{c.teacher}</div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-
 /* ── GPA ─────────────────────────────────────────────────── */
 function GPAPage({ sharedClasses }) {
   const [localClasses, setLocalClasses] = useState(CLASSES);
@@ -832,103 +1279,116 @@ function GPAPage({ sharedClasses }) {
 
   return (
     <div className="page fu">
-      <div className="ph">
-        <div className="ph-row">
-          <div><div className="ph-title">GPA Calculator</div><div className="ph-sub">Spring 2026</div></div>
-          <div className="btn-row">
-            <button className="btn btn-out btn-sm" onClick={()=>setShowWI(true)}>What do I need?</button>
-            <button className="btn btn-dark btn-sm" onClick={()=>setShowAdd(true)}><Plus size={12}/>Add Class</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="g2" style={{marginBottom:16}}>
-        <div className="gpa-card">
-          <div className="gpa-lbl">Weighted GPA</div>
-          <div className="gpa-num">{wgpa}</div>
-          <div className="gpa-sub">AP +1.0 · Honors +0.5</div>
-          <div className="pb" style={{marginTop:12,height:5,borderRadius:3}}>
-            <div className="pf" style={{width:`${(parseFloat(wgpa)/5)*100}%`,background:parseFloat(wgpa)>=4.2?"var(--green)":"var(--orange)"}}/>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",marginTop:3}}><span>0.0</span><span>/ 5.0</span></div>
-        </div>
-        <div className="gpa-card">
-          <div className="gpa-lbl">Unweighted GPA</div>
-          <div className="gpa-num">{ugpa}</div>
-          <div className="gpa-sub">Standard 4.0 scale</div>
-          <div className="pb" style={{marginTop:12,height:5,borderRadius:3}}>
-            <div className="pf" style={{width:`${(parseFloat(ugpa)/4)*100}%`,background:parseFloat(ugpa)>=3.5?"var(--green)":"var(--orange)"}}/>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)",marginTop:3}}><span>0.0</span><span>/ 4.0</span></div>
-        </div>
-      </div>
-
-      {drag.length>0 && (
-        <div className="card" style={{marginBottom:14}}>
-          <div className="ch"><div className="ct" style={{display:"flex",alignItems:"center",gap:6}}><AlertTriangle size={13} style={{color:"var(--red)"}}/>Pulling Your GPA Down</div></div>
-          {drag.map(c=>(
-            <div key={c.id} className="drag-row">
-              <div style={{flex:1,fontSize:13,fontWeight:500}}>{c.name}</div>
-              <div style={{fontFamily:"var(--ff-m)",fontSize:11,color:"var(--red)"}}>{c.pct}% · {c.letter}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="card">
-        <div className="ch"><div className="ct">All Classes</div></div>
-        {classes.map(c=>(
-          <div key={c.id} className="cls-row">
-            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{c.name}</div><div style={{fontFamily:"var(--ff-m)",fontSize:9,color:"var(--ink3)"}}>{c.code}</div></div>
-            <span className={`tag t-${c.type==="AP"?"ap":c.type==="HN"?"hn":"reg"}`}>{c.type}</span>
-            <div style={{fontFamily:"var(--ff-m)",fontSize:12,fontWeight:500,width:42,textAlign:"right"}}>{c.pct}%</div>
-            <div style={{fontFamily:"var(--ff-d)",fontSize:18,fontWeight:700,color:lColor(c.letter),width:28,textAlign:"center"}}>{c.letter}</div>
-          </div>
-        ))}
-      </div>
-
-      {showAdd && (
-        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
-          <div className="modal sd">
-            <div className="mt">Add Class</div>
-            <div className="fg"><label className="fl">Class Name</label><input className="fi" value={nc.name} onChange={e=>setNc({...nc,name:e.target.value})} placeholder="e.g. AP Physics C"/></div>
-            <div className="g2">
-              <div className="fg"><label className="fl">Level</label><select className="fs" value={nc.type} onChange={e=>setNc({...nc,type:e.target.value})}><option value="AP">AP (+1.0)</option><option value="HN">Honors (+0.5)</option><option value="REG">Regular</option></select></div>
-              <div className="fg"><label className="fl">Current Grade %</label><input type="number" className="fi" value={nc.pct} onChange={e=>setNc({...nc,pct:parseFloat(e.target.value)||0})} min={0} max={100}/></div>
-            </div>
-            <div style={{background:"var(--surface2)",borderRadius:"var(--r)",padding:"12px 14px",marginBottom:14}}>
-              <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:1,textTransform:"uppercase",color:"var(--ink3)",marginBottom:6}}>GPA Preview After Adding</div>
-              <div style={{display:"flex",gap:20}}>
-                <div><div style={{fontSize:10,color:"var(--ink3)"}}>Weighted</div><div style={{fontFamily:"var(--ff-d)",fontSize:26,fontWeight:900}}>{calcW([...classes,{...nc,id:99}])}</div></div>
-                <div><div style={{fontSize:10,color:"var(--ink3)"}}>Unweighted</div><div style={{fontFamily:"var(--ff-d)",fontSize:26,fontWeight:900}}>{calcU([...classes,{...nc,id:99}])}</div></div>
+      <div className="page-container">
+        <div className="ph" style={{padding:"24px 0 16px"}}>
+          <div className="ph-row" style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+            <div>
+              <div className="ph-title">GPA Calculator</div>
+              <div style={{fontFamily:"var(--ff-m)", fontSize:10, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.5)", marginTop:6}}>
+                Academic performance tracking
               </div>
             </div>
             <div className="btn-row">
-              <button className="btn btn-dark" style={{flex:1}} onClick={addCls} disabled={!nc.name}>Add Class</button>
+              <button className="btn btn-out btn-sm" onClick={()=>setShowWI(true)}>What do I need?</button>
+              <button className="btn btn-dark btn-sm" onClick={()=>setShowAdd(true)}><Plus size={12}/>Add Class</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="g2" style={{marginBottom:32, display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:28}}>
+          <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", padding:24, borderRadius:16, border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--ff-m)", fontSize:10, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:8}}>Weighted GPA</div>
+            <div style={{fontFamily:"var(--ff-d)", fontSize:42, fontWeight:900, color:"#fff", lineHeight:1}}>{wgpa}</div>
+            <div style={{fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:4}}>Scale adjusted for course rigor</div>
+            <div style={{marginTop:20, height:12, background:"rgba(255,255,255,0.05)", borderRadius:6, overflow:"hidden"}}>
+              <div style={{height:"100%", width:`${(parseFloat(wgpa)/5)*100}%`, background:"linear-gradient(90deg, #10B981, #059669)", borderRadius:6, transition:"width 1s cubic-bezier(0.34, 1.56, 0.64, 1)"}}/>
+            </div>
+          </div>
+          <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", padding:24, borderRadius:16, border:"1px solid var(--border)"}}>
+            <div style={{fontFamily:"var(--ff-m)", fontSize:10, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:8}}>Unweighted GPA</div>
+            <div style={{fontFamily:"var(--ff-d)", fontSize:42, fontWeight:900, color:"#fff", lineHeight:1}}>{ugpa}</div>
+            <div style={{fontSize:11, color:"rgba(255,255,255,0.5)", marginTop:4}}>Baseline 4.0 academic standard</div>
+            <div style={{marginTop:20, height:12, background:"rgba(255,255,255,0.05)", borderRadius:6, overflow:"hidden"}}>
+              <div style={{height:"100%", width:`${(parseFloat(ugpa)/4)*100}%`, background:"linear-gradient(90deg, #10B981, #059669)", borderRadius:6, transition:"width 1s cubic-bezier(0.34, 1.56, 0.64, 1)"}}/>
+            </div>
+          </div>
+        </div>
+
+        {drag.length>0 && (
+          <div className="card" style={{background:"rgba(239,68,68,0.05)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:16, padding:20, marginBottom:24}}>
+            <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:16}}>
+              <AlertTriangle size={16} style={{color:"var(--red)"}}/>
+              <div style={{fontSize:14, fontWeight:700, color:"#fff"}}>GPA Impact Alerts</div>
+            </div>
+            {drag.map(c=>(
+              <div key={c.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", background:"rgba(255,255,255,0.03)", borderRadius:10, marginBottom:8}}>
+                <div style={{fontSize:13, fontWeight:600, color:"#fff"}}>{c.name}</div>
+                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                  <span style={{fontSize:12, fontWeight:700, color:"var(--red)"}}>{c.pct}%</span>
+                  <span style={{fontSize:10, background:"rgba(239,68,68,0.2)", color:"var(--red)", padding:"2px 6px", borderRadius:4}}>{c.letter}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", border:"1px solid var(--border)", borderRadius:16, padding:20}}>
+          <div style={{fontSize:14, fontWeight:700, color:"#fff", marginBottom:16}}>Course Overview</div>
+          <div style={{display:"flex", flexDirection:"column", gap:2}}>
+            {classes.map(c=>(
+              <div key={c.id} style={{display:"flex", alignItems:"center", gap:16, padding:12, borderRadius:10, transition:"background 0.2s"}} className="cls-row-hover">
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13, fontWeight:700, color:"#fff"}}>{c.name}</div>
+                  <div style={{fontSize:10, color:"rgba(255,255,255,0.4)", fontFamily:"var(--ff-m)", marginTop:2}}>{c.code}</div>
+                </div>
+                <span className="tag" style={{background:"rgba(255,255,255,0.05)", color:"#fff", border:"1px solid var(--border)"}}>{c.type}</span>
+                <div style={{textAlign:"right", minWidth:60}}>
+                  <div style={{fontSize:16, fontWeight:900, color:lColor(c.letter), fontFamily:"var(--ff-d)", lineHeight:1}}>{c.letter}</div>
+                  <div style={{fontSize:10, color:"rgba(255,255,255,0.5)", fontWeight:600, marginTop:2}}>{c.pct}%</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Add Class Modal */}
+      {showAdd && (
+        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAdd(false)} style={{backdropFilter:"blur(8px)"}}>
+          <div className="modal" style={{background:"rgba(26,26,42,0.95)", border:"1px solid var(--border)", padding:24, borderRadius:20}}>
+            <div className="ph-title" style={{fontSize:20, marginBottom:20}}>Add Course</div>
+            <div className="fg"><label className="fl">Course Name</label><input className="fi" value={nc.name} onChange={e=>setNc({...nc,name:e.target.value})} placeholder="e.g. AP World History"/></div>
+            <div className="g2">
+              <div className="fg"><label className="fl">Level</label><select className="fi" value={nc.type} onChange={e=>setNc({...nc,type:e.target.value})}><option value="AP">AP (+1.0)</option><option value="HN">Honors (+0.5)</option><option value="REG">Regular</option></select></div>
+              <div className="fg"><label className="fl">Current %</label><input type="number" className="fi" value={nc.pct} onChange={e=>setNc({...nc,pct:parseFloat(e.target.value)||0})}/></div>
+            </div>
+            <div className="btn-row" style={{marginTop:24}}>
+              <button className="btn btn-dark" style={{flex:1}} onClick={addCls} disabled={!nc.name}>Add to Record</button>
               <button className="btn btn-out" onClick={()=>setShowAdd(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* What Do I Need Modal */}
       {showWI && (
-        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowWI(false)}>
-          <div className="modal sd">
-            <div className="mt">What Do I Need?</div>
-            <div className="fg"><label className="fl">Class</label><select className="fs" value={wiCid} onChange={e=>setWiCid(parseInt(e.target.value))}>{classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-            <div className="fg"><label className="fl">Assignment Name</label><input className="fi" value={wiAsgn} onChange={e=>setWiAsgn(e.target.value)} placeholder="e.g. Unit 4 Test"/></div>
+        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowWI(false)} style={{backdropFilter:"blur(8px)"}}>
+          <div className="modal" style={{background:"rgba(26,26,42,0.95)", border:"1px solid var(--border)", padding:24, borderRadius:20, maxWidth:400}}>
+            <div className="ph-title" style={{fontSize:20, marginBottom:20}}>Grade Projection</div>
+            <div className="fg"><label className="fl">Select Course</label><select className="fi" value={wiCid} onChange={e=>setWiCid(parseInt(e.target.value))}>{classes.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
             <div className="g2">
-              <div className="fg"><label className="fl">Type</label><select className="fs" value={wiType} onChange={e=>setWiType(e.target.value)}><option>Formative</option><option>Summative</option><option>Final</option></select></div>
-              <div className="fg"><label className="fl">Worth (points)</label><input type="number" className="fi" value={wiTotal} onChange={e=>setWiTotal(parseInt(e.target.value)||100)}/></div>
+              <div className="fg"><label className="fl">Assignment</label><input className="fi" value={wiAsgn} onChange={e=>setWiAsgn(e.target.value)} placeholder="Upcoming Task"/></div>
+              <div className="fg"><label className="fl">Grade Type</label><select className="fi" value={wiType} onChange={e=>setWiType(e.target.value)}><option>Formative</option><option>Summative</option><option>Final</option></select></div>
             </div>
-            <div className="fg"><label className="fl">I want a ___% in this class</label><input type="number" className="fi" value={wiTarget} onChange={e=>setWiTarget(parseInt(e.target.value)||0)} min={0} max={100}/></div>
-            <div className="what-result">
-              <div className="wr-lbl">You need</div>
-              <div className="wr-num">{needed}%</div>
-              <div className="wr-sub">{neededPts} out of {wiTotal} pts on {wiAsgn||"this assignment"}</div>
-              {needed>=100 && <div style={{marginTop:8,fontSize:11,color:"#c0392b",background:"rgba(192,57,43,0.15)",borderRadius:4,padding:"5px 10px"}}>This target may not be achievable with one assignment.</div>}
+            <div className="fg"><label className="fl">Target Final Grade %</label><input type="number" className="fi" value={wiTarget} onChange={e=>setWiTarget(parseInt(e.target.value)||0)}/></div>
+            
+            <div style={{background:"rgba(16,185,129,0.05)", border:"1px solid rgba(16,185,129,0.2)", borderRadius:14, padding:20, marginTop:20, textAlign:"center"}}>
+              <div style={{fontSize:11, color:"rgba(16,185,129,0.7)", fontWeight:700, letterSpacing:1, textTransform:"uppercase"}}>Required Score</div>
+              <div style={{fontSize:42, fontWeight:900, color:"#fff", fontFamily:"var(--ff-d)", margin:"8px 0"}}>{needed}%</div>
+              <div style={{fontSize:12, color:"rgba(255,255,255,0.5)"}}>{neededPts} / {wiTotal} points needed</div>
             </div>
-            <button className="btn btn-out" style={{width:"100%"}} onClick={()=>setShowWI(false)}>Close</button>
+
+            <button className="btn btn-out" style={{width:"100%", marginTop:20, justifyContent:"center"}} onClick={()=>setShowWI(false)}>Close Calculator</button>
           </div>
         </div>
       )}
@@ -979,91 +1439,130 @@ function ScreenTimePage() {
 
   return (
     <div className="page fu">
-      <div className="ph">
-        <div className="ph-title">Screen Time</div>
-        <div className="ph-sub">Block apps · stay focused</div>
-      </div>
-
-      {active ? (
-        <div className="opal sd">
-          <div className="opal-status">{onBreak?"ON BREAK":isPomo?`POMODORO · ${pomoPhase.toUpperCase()}`:"FOCUS SESSION"}</div>
-          <div className="opal-title" style={{fontStyle:"italic"}}>{onBreak?"Resting.":isPomo&&pomoPhase==="break"?"Take a breath.":"Focus."}</div>
-          <div className="opal-time">
-            {isPomo ? `${fmtT(pomoSecs)} until ${pomoPhase==="work"?"break":"focus"} · session ${fmtT(secs)}` : `${fmtT(timeLeft)} remaining · ${fmtT(secs)} elapsed`}
-          </div>
-          <div className="pb" style={{background:"rgba(255,255,255,0.08)",marginBottom:18,height:3}}>
-            <div className="pf" style={{width:`${pct}%`,background:"rgba(255,255,255,0.5)"}}/>
-          </div>
-          <div className="btn-row">
-            {onBreak
-              ? <button className="btn" style={{background:"#fff",color:"var(--ink)"}} onClick={()=>setOnBreak(false)}>▶ Resume</button>
-              : <button className="btn" style={{background:"rgba(255,255,255,0.08)",color:"#888",border:"1px solid rgba(255,255,255,0.1)"}} onClick={()=>setOnBreak(true)}>⏸ Break</button>}
-            <button className="btn" style={{background:"rgba(255,255,255,0.06)",color:"#666",border:"1px solid rgba(255,255,255,0.08)"}} onClick={()=>setShowAddT(true)}>+ Add Time</button>
-            <button className="btn btn-red" onClick={end}>■ End</button>
+      <div className="page-container">
+        <div className="ph" style={{padding:"24px 0 16px"}}>
+          <div className="ph-title">Deep Focus</div>
+          <div style={{fontFamily:"var(--ff-m)", fontSize:10, letterSpacing:1.5, textTransform:"uppercase", color:"rgba(255,255,255,0.5)", marginTop:6}}>
+            Minimize distractions during study blocks
           </div>
         </div>
-      ) : (
-        <div className="opal opal-idle">
-          <div className="opal-status">NO ACTIVE SESSION</div>
-          <div className="opal-title" style={{fontStyle:"italic",fontFamily:"var(--ff-d)"}}>Ready when you are.</div>
-          <div className="opal-time">{blocked.length} apps will be blocked</div>
-          <button className="btn btn-dark" style={{padding:"10px 22px",fontSize:14}} onClick={()=>setShowStart(true)}>
-            Start Focus Session <ArrowRight size={13}/>
-          </button>
-        </div>
-      )}
 
-      <div className="card">
-        <div className="ch"><div className="ct">Apps to Block</div><span style={{fontFamily:"var(--ff-m)",fontSize:10,color:"var(--ink3)"}}>{blocked.length} selected</span></div>
-        <div className="app-grid">
-          {APPS.map(a=>(
-            <div key={a.name} className={`app-tile ${blocked.includes(a.name)?"on":""}`} onClick={()=>setBlocked(p=>p.includes(a.name)?p.filter(x=>x!==a.name):[...p,a.name])}>
-              <div className="app-icon">{a.icon}</div>
-              <div className="app-nm">{a.name}</div>
+        {active ? (
+          <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.1)", padding:40, borderRadius:24, textAlign:"center", marginBottom:32}}>
+            <div style={{fontSize:14, fontWeight:700, color:"rgba(255,255,255,0.6)", textTransform:"uppercase", letterSpacing:2, marginBottom:16}}>
+              {onBreak ? "Resting Period" : isPomo && pomoPhase === "break" ? "Take a Breath" : "Focusing Mode"}
             </div>
-          ))}
+            <div style={{fontFamily:"var(--ff-d)", fontSize:84, fontWeight:900, color:"#fff", letterSpacing:"-4px", lineHeight:1, marginBottom:12}}>
+              {isPomo ? fmtT(pomoSecs) : fmtT(timeLeft)}
+            </div>
+            <div style={{fontSize:14, color:"rgba(255,255,255,0.4)", marginBottom:32}}>
+              {isPomo ? `${pomoPhase === "work" ? "Until Break" : "Until Focus"} · ${fmtT(secs)} total session` : `${fmtT(secs)} elapsed total`}
+            </div>
+            
+            <div className="pb" style={{height:4, background:"rgba(255,255,255,0.05)", borderRadius:2, width:240, margin:"0 auto 32px"}}>
+              <div className="pf" style={{width:`${pct}%`, background:"#fff", boxShadow:"0 0 15px rgba(255,255,255,0.3)"}}/>
+            </div>
+
+            <div className="btn-row" style={{justifyContent:"center", gap:16}}>
+              {onBreak ? (
+                <button className="btn btn-dark" style={{background:"#fff", color:"#000", padding:"12px 32px"}} onClick={()=>setOnBreak(false)}><Play size={16}/> Resume</button>
+              ) : (
+                <button className="btn btn-out" style={{padding:"12px 32px"}} onClick={()=>setOnBreak(true)}><Pause size={16}/> Pause</button>
+              )}
+              <button className="btn btn-out" style={{padding:"12px 24px"}} onClick={()=>setShowAddT(true)}><Plus size={16}/> Add Time</button>
+              <button className="btn btn-red" style={{padding:"12px 24px"}} onClick={end}><Square size={16}/> End Session</button>
+            </div>
+          </div>
+        ) : (
+          <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", border:"1px solid var(--border)", padding:48, borderRadius:24, textAlign:"center", marginBottom:32}}>
+            <div style={{fontSize:48, marginBottom:20}}>🎯</div>
+            <div style={{fontFamily:"var(--ff-d)", fontSize:32, fontWeight:800, color:"#fff", marginBottom:12}}>Flow state starts here.</div>
+            <div style={{fontSize:14, color:"rgba(255,255,255,0.5)", marginBottom:32}}>
+              Click below to block {blocked.length} distracting apps and start your study block.
+            </div>
+            <button className="btn btn-dark" style={{padding:"14px 32px", fontSize:16, margin:"0 auto"}} onClick={()=>setShowStart(true)}>
+              Initialize Focus Block <ChevronRight size={18}/>
+            </button>
+          </div>
+        )}
+
+        <div className="card" style={{background:"rgba(26,26,42,0.4)", backdropFilter:"blur(12px)", border:"1px solid var(--border)", borderRadius:16, padding:24}}>
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20}}>
+            <div style={{fontSize:14, fontWeight:700, color:"#fff"}}>App Blocking List</div>
+            <div style={{fontSize:10, fontFamily:"var(--ff-m)", color:"rgba(255,255,255,0.4)", letterSpacing:1}}>{blocked.length} APPS SELECTED</div>
+          </div>
+          <div className="app-grid" style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:12}}>
+            {APPS.map(a=>(
+              <div key={a.name} className={`app-tile ${blocked.includes(a.name)?"on":""}`} style={{
+                background: blocked.includes(a.name) ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.02)",
+                border: blocked.includes(a.name) ? "1px solid rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.05)",
+                padding: 16,
+                borderRadius: 12,
+                cursor: "pointer",
+                textAlign: "center",
+                transition: "all 0.2s"
+              }} onClick={()=>setBlocked(p=>p.includes(a.name)?p.filter(x=>x!==a.name):[...p,a.name])}>
+                <div style={{fontSize:24, marginBottom:8}}>{a.icon}</div>
+                <div style={{fontSize:11, fontWeight:600, color: blocked.includes(a.name) ? "#fff" : "rgba(255,255,255,0.4)"}}>{a.name}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Start Session Modal */}
       {showStart && (
-        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowStart(false)}>
-          <div className="modal sd">
-            <div className="mt">Start Focus Session</div>
-            <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>Duration</div>
-            <div className="g4" style={{marginBottom:12}}>
+        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowStart(false)} style={{backdropFilter:"blur(12px)"}}>
+          <div className="modal" style={{background:"rgba(26,26,42,0.95)", border:"1px solid var(--border)", padding:24, borderRadius:20, width:400}}>
+            <div className="ph-title" style={{fontSize:20, marginBottom:24}}>Focus Parameters</div>
+            
+            <div style={{fontFamily:"var(--ff-m)", fontSize:9, letterSpacing:2, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:10}}>Duration</div>
+            <div className="g4" style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8, marginBottom:20}}>
               {[25,50,90,"custom"].map(d=>(
-                <div key={d} className={`dur-btn ${selDur===d?"on":""}`} onClick={()=>setSelDur(d)}>
+                <div key={d} className={`dur-btn ${selDur===d?"on":""}`} style={{
+                  padding: "10px 0", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "1px solid var(--border)",
+                  background: selDur===d ? "rgba(255,255,255,0.1)" : "transparent",
+                  color: selDur===d ? "#fff" : "rgba(255,255,255,0.4)"
+                }} onClick={()=>setSelDur(d)}>
                   {d==="custom"?"Custom":`${d}m`}
                 </div>
               ))}
             </div>
+
             {selDur==="custom" && (
-              <div className="g2" style={{marginBottom:12}}>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Hours</label><input type="number" className="fi" value={customH} onChange={e=>setCustomH(parseInt(e.target.value)||0)} min={0} max={8}/></div>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Minutes</label><input type="number" className="fi" value={customM} onChange={e=>setCustomM(parseInt(e.target.value)||0)} min={0} max={59}/></div>
+              <div className="g2" style={{marginBottom:20}}>
+                <div className="fg"><label className="fl">Hours</label><input type="number" className="fi" value={customH} onChange={e=>setCustomH(parseInt(e.target.value)||0)} min={0} max={8}/></div>
+                <div className="fg"><label className="fl">Minutes</label><input type="number" className="fi" value={customM} onChange={e=>setCustomM(parseInt(e.target.value)||0)} min={0} max={59}/></div>
               </div>
             )}
-            <div className="dv"/>
-            <div style={{fontFamily:"var(--ff-m)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--ink3)",marginBottom:8}}>Mode</div>
-            <div className={`pomo-opt ${!isPomo?"on":""}`} onClick={()=>setIsPomo(false)}>
-              <div className="pomo-opt-t">Standard</div>
-              <div className="pomo-opt-s">Block apps for the full duration</div>
+
+            <div style={{fontFamily:"var(--ff-m)", fontSize:9, letterSpacing:2, textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:10, marginTop:10}}>Mode Selection</div>
+            <div style={{display:"flex", flexDirection:"column", gap:8, marginBottom:24}}>
+              <div className={`pomo-opt ${!isPomo?"on":""}`} style={{
+                padding: 14, borderRadius: 12, cursor: "pointer", border: "1px solid var(--border)",
+                background: !isPomo ? "rgba(255,255,255,0.05)" : "transparent"
+              }} onClick={()=>setIsPomo(false)}>
+                <div style={{fontSize:13, fontWeight:700, color: !isPomo?"#fff":"rgba(255,255,255,0.4)"}}>Standard Interval</div>
+                <div style={{fontSize:11, color: "rgba(255,255,255,0.3)", marginTop:2}}>Uninterrupted focus block</div>
+              </div>
+              <div className={`pomo-opt ${isPomo?"on":""}`} style={{
+                padding: 14, borderRadius: 12, cursor: "pointer", border: "1px solid var(--border)",
+                background: isPomo ? "rgba(255,255,255,0.05)" : "transparent"
+              }} onClick={()=>setIsPomo(true)}>
+                <div style={{fontSize:13, fontWeight:700, color: isPomo?"#fff":"rgba(255,255,255,0.4)"}}>🍅 Pomodoro Technique</div>
+                <div style={{fontSize:11, color: "rgba(255,255,255,0.3)", marginTop:2}}>{pomoWork}m work · {pomoBrk}m break intervals</div>
+              </div>
             </div>
-            <div className={`pomo-opt ${isPomo?"on":""}`} onClick={()=>setIsPomo(true)}>
-              <div className="pomo-opt-t">🍅 Pomodoro</div>
-              <div className="pomo-opt-s">{pomoWork}min focus · {pomoBrk}min break · repeat</div>
-            </div>
+
             {isPomo && (
-              <div className="g2" style={{marginTop:8}}>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Work (min)</label><input type="number" className="fi" value={pomoWork} onChange={e=>setPomoWork(parseInt(e.target.value)||25)} min={5} max={60}/></div>
-                <div className="fg" style={{marginBottom:0}}><label className="fl">Break (min)</label><input type="number" className="fi" value={pomoBrk} onChange={e=>setPomoBrk(parseInt(e.target.value)||5)} min={1} max={30}/></div>
+              <div className="g2" style={{marginBottom:24}}>
+                <div className="fg"><label className="fl">Work Span</label><input type="number" className="fi" value={pomoWork} onChange={e=>setPomoWork(parseInt(e.target.value)||25)}/></div>
+                <div className="fg"><label className="fl">Break Span</label><input type="number" className="fi" value={pomoBrk} onChange={e=>setPomoBrk(parseInt(e.target.value)||5)}/></div>
               </div>
             )}
-            <div className="dv"/>
-            <div style={{background:"var(--surface2)",borderRadius:"var(--r)",padding:"10px 13px",marginBottom:14,fontSize:12,color:"var(--ink3)"}}>
-              <strong style={{color:"var(--ink)"}}>{blocked.length} apps blocked:</strong> {blocked.slice(0,4).join(", ")}{blocked.length>4?` +${blocked.length-4}`:""}</div>
+
             <div className="btn-row">
-              <button className="btn btn-dark" style={{flex:1}} onClick={start}>Start →</button>
+              <button className="btn btn-dark" style={{flex:1, justifyContent:"center"}} onClick={start}>Initialize Session</button>
               <button className="btn btn-out" onClick={()=>setShowStart(false)}>Cancel</button>
             </div>
           </div>
@@ -1071,16 +1570,19 @@ function ScreenTimePage() {
       )}
 
       {showAddT && (
-        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAddT(false)}>
-          <div className="modal sd" style={{width:320}}>
-            <div className="mt">Add Time</div>
-            <div style={{display:"flex",gap:6,marginBottom:14}}>
-              {[5,10,15,30].map(m=><div key={m} className={`dur-btn ${addMins===m?"on":""}`} style={{flex:1}} onClick={()=>setAddMins(m)}>{m}m</div>)}
+        <div className="ov" onClick={e=>e.target===e.currentTarget&&setShowAddT(false)} style={{backdropFilter:"blur(8px)"}}>
+          <div className="modal" style={{background:"rgba(26,26,42,0.95)", border:"1px solid var(--border)", padding:24, borderRadius:20, width:320}}>
+            <div className="ph-title" style={{fontSize:18, marginBottom:20}}>Extend Session</div>
+            <div style={{display:"flex", gap:8, marginBottom:20}}>
+              {[5,15,30].map(m=><div key={m} className={`dur-btn ${addMins===m?"on":""}`} style={{
+                flex:1, textAlign:"center", padding:"10px 0", borderRadius:8, fontSize:12, fontWeight:700, cursor:"pointer", border:"1px solid var(--border)",
+                background: addMins===m?"rgba(255,255,255,0.1)":"transparent",
+                color: addMins===m?"#fff":"rgba(255,255,255,0.4)"
+              }} onClick={()=>setAddMins(m)}>{m}m</div>)}
             </div>
-            <div className="fg"><label className="fl">Custom (minutes)</label><input type="number" className="fi" value={addMins} onChange={e=>setAddMins(parseInt(e.target.value)||0)}/></div>
             <div className="btn-row">
-              <button className="btn btn-dark" style={{flex:1}} onClick={()=>{setTotalSecs(t=>t+addMins*60);setShowAddT(false);}}>Add {addMins} min</button>
-              <button className="btn btn-out" onClick={()=>setShowAddT(false)}>Cancel</button>
+              <button className="btn btn-dark" style={{flex:1, justifyContent:"center"}} onClick={()=>{setTotalSecs(t=>t+addMins*60);setShowAddT(false);}}>Confirm +{addMins}m</button>
+              <button className="btn btn-out" onClick={()=>setShowAddT(false)}>Discard</button>
             </div>
           </div>
         </div>
@@ -1730,12 +2232,13 @@ export default function App() {
   };
 
   const nav = [
-    {id:"home",      icon:<Home size={14}/>,      label:"Home"},
-    {id:"grades",    icon:<BookOpen size={14}/>,   label:"Grades"},
-    {id:"gpa",       icon:<Calculator size={14}/>, label:"GPA"},
-    {id:"calendar",  icon:<Calendar size={14}/>,   label:"Calendar"},
-    {id:"importer",  icon:<Sparkles size={14}/>,   label:"Import"},
-    {id:"screentime",icon:<Clock size={14}/>,      label:"Screen Time"},
+    {id:"home",         icon:<Home size={14}/>,       label:"Dashboard"},
+    {id:"calendar",     icon:<Calendar size={14}/>,    label:"Calendar"},
+    {id:"grades",       icon:<BookOpen size={14}/>,    label:"Gradebook"},
+    {id:"gpa",          icon:<Calculator size={14}/>,  label:"GPA"},
+    {id:"integrations", icon:<Layers size={14}/>,      label:"Integrations"},
+    {id:"screentime",   icon:<Clock size={14}/>,       label:"Focus"},
+    {id:"importer",     icon:<Sparkles size={14}/>,    label:"Import"},
   ];
 
   return (
@@ -1771,13 +2274,14 @@ export default function App() {
           </div>
         </div>
         <div className="main">
-          {page==="home"       && <HomePage events={events}/>}
-          {page==="grades"     && <GradesPage classes={sharedClasses} syncStatus={syncStatus} syncError={syncError} lastSynced={lastSynced} syncPeriod={syncPeriod} onSync={()=>syncGrades()} onDismiss={()=>setSyncStatus("idle")}/>}
-          {page==="gpa"        && <GPAPage sharedClasses={sharedClasses}/>}
-          {page==="calendar"   && <div className="cal-page-wrap"><CalendarPage events={events} setEvents={setEvents}/></div>}
-          {page==="importer"   && <ImporterPage setEvents={setEvents}/>}
-          {page==="screentime" && <ScreenTimePage/>}
-          {page==="settings"   && <SettingsPage svCreds={svCreds} onSave={handleSaveCreds}/>}
+          {page==="home"         && <HomePage events={events} classes={sharedClasses} syncStatus={syncStatus}/>}
+          {page==="grades"       && <GradesPage classes={sharedClasses} syncStatus={syncStatus} syncError={syncError} lastSynced={lastSynced} syncPeriod={syncPeriod} onSync={()=>syncGrades()} onDismiss={()=>setSyncStatus("idle")}/>}
+          {page==="gpa"          && <GPAPage sharedClasses={sharedClasses}/>}
+          {page==="calendar"     && <div className="cal-page-wrap"><CalendarPage events={events} setEvents={setEvents}/></div>}
+          {page==="integrations" && <IntegrationsPage setPage={setPage} />}
+          {page==="importer"     && <ImporterPage setEvents={setEvents}/>}
+          {page==="screentime"   && <ScreenTimePage/>}
+          {page==="settings"     && <SettingsPage svCreds={svCreds} onSave={handleSaveCreds}/>}
         </div>
       </div>
     </>
